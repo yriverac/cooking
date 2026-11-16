@@ -200,6 +200,23 @@ async function setRecipePhoto(id, file){
   catch { toast("That photo couldn't upload. Try a JPG or PNG under 20 MB."); }
 }
 
+/* why Claude is off, and a way to turn it back on when the viewer can */
+async function explainClaude(){
+  const host = $("#im-msg .banner > div"); if (!host) return;
+  let st = "unavailable";
+  try { const P = await window.claude?.use?.("permissions"); if (P) st = await P.state("sample"); } catch {}
+  const line = document.createElement("p"); line.className = "small"; line.style.margin = "8px 0 0";
+  line.textContent = st === "denied" ? "Claude was turned off for this page. You can turn it back on in Permissions."
+    : st === "prompt" ? "Claude needs your OK for this page. Open Permissions to allow it."
+    : "Your Claude plan or organization doesn't let pages use Claude, so it can't be turned on here. Pasted page text still works.";
+  host.append(line);
+  if (st === "denied" || st === "prompt"){
+    const b = document.createElement("button"); b.className = "btn sm quiet"; b.style.marginTop = "8px"; b.textContent = "Open Permissions";
+    b.onclick = async () => { try { const P = await window.claude.use("permissions"); await P.manage(); if ((await P.state("sample")) === "granted") { line.textContent = "Claude is on. Reload the page, then tap Read recipe again."; b.remove(); } } catch { line.textContent = "Open the page's Permissions menu at the top of the artifact and turn on Claude, then reload."; } };
+    host.append(b);
+  }
+}
+
 /* ================= import from a link ================= */
 let importCtl = null, importShots = null;
 function renderImport(){
@@ -241,8 +258,8 @@ function renderImport(){
       renderEditor(null, {...got, source: src, category: "Dinner"}, `Read from the page text (${why.replace(/\.$/, "")}). Check every field, then save.`);
     };
     if (!S.sample){
-      if (!text){ say("Reading screenshots needs Claude, and this view of the app doesn't allow Claude. Paste the page text instead, or open the app in a claude.ai browser tab.", true, true); return; }
-      readLocally("Claude isn't available in this view."); return;
+      if (!text){ say("Screenshots need Claude, and Claude is off for this page. Paste the page text instead: on the recipe page press ⌘A then ⌘C (on a phone: select all, Copy), paste it in the Page text box, and tap Read recipe.", true, true); explainClaude(); return; }
+      readLocally("Claude is off for this page."); return;
     }
     if (!text && !files.length){ say("Paste the page text or add screenshots. Claude can't open the link by itself.", true, true); return; }
     let imgs = [];
