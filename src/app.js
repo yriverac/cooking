@@ -48,7 +48,10 @@ const flatSteps = r => (r.steps||[]).flatMap(s => (s.items||[]).map(t => ({secti
 const byId = id => S.recipes.find(r => r.id === id);
 function allergensOf(r){ return allergenHits([r.title, ...allIngs(r).map(i => ingText(i)), ...flatSteps(r).map(s => s.text)]); }
 function meatsOf(r){ return meatsIn(allIngs(r).map(i => ingText(i))); }
-function thumb(r){ return `<div class="thumb" style="background:var(${TILE[r.category] || "--t-other"})">${r.photoUrl ? `<img src="${esc(r.photoUrl)}" alt="" loading="lazy">` : `<span class="initial">${esc((r.title||"?").trim()[0] || "?")}</span>`}</div>`; }
+/* bundled default photos: used only when a recipe has no photo of its own */
+const STOCK = /*STOCK*/{};
+const photoOf = r => r.photoUrl || (r.id && STOCK[r.id]) || "";
+function thumb(r){ const src = photoOf(r); return `<div class="thumb" style="background:var(${TILE[r.category] || "--t-other"})">${src ? `<img src="${esc(src)}" alt="" loading="lazy">` : `<span class="initial">${esc((r.title||"?").trim()[0] || "?")}</span>`}</div>`; }
 function scaleFor(r){ const base = r.servings || 1; const cur = S.serv[r.id] ?? base; return {base, cur, k: cur / base}; }
 function servLabel(r, n){ return r.servings ? `${fmtNum(n)} ${esc(r.servingsUnit || "servings")}` : `${fmtNum(n)}× batch`; }
 function keepsText(r){
@@ -204,7 +207,9 @@ function renderRecipe({id}){
           <div><span class="label">Makes</span><b>${r.servings ? servLabel(r, base) : "1 batch"}</b></div>
           ${keepsText(r) ? `<div style="grid-column:span 2"><span class="label">Keeps</span><b style="font-size:15px;font-family:var(--body)">${esc(keepsText(r))}</b></div>` : ""}
         </div>
-        ${host ? `<p class="muted" style="margin:0">From <a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(host)}</a></p>` : ""}
+        ${host ? `<div class="srcbox"><span class="label">Original recipe · ${esc(host)}</span>
+          <div class="row" style="gap:8px"><a class="btn sm ghost" href="${esc(r.source)}" target="_blank" rel="noopener noreferrer">Open original recipe ↗</a><button class="btn sm quiet" id="copysrc" type="button">Copy link</button></div>
+          <input id="srcurl" class="small" readonly value="${esc(r.source)}" aria-label="Recipe link" hidden></div>` : ""}
         <div class="row">
           ${flatSteps(r).length ? `<button class="btn" id="cook">Start cooking</button>` : ""}
           <button class="btn ghost" id="toplan">Add to meal plan</button>
@@ -244,6 +249,10 @@ function renderRecipe({id}){
   $("#toplan").onclick = () => openPlanAdd(r.id);
   bindPasteZone($("#r-paste"), fs => setRecipePhoto(r.id, fs[0]));
   $("#fav")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), favorite: !r.favorite}));
+  $("#copysrc")?.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(r.source); toast("Link copied. Paste it in a new tab."); }
+    catch { const i = $("#srcurl"); i.hidden = false; i.focus(); i.select(); toast("Press ⌘C (or Copy) to copy the link."); }
+  });
   $("#clearflags")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), flags: []}));
 }
 function stripId(r){ const {id, ...rest} = r; return rest; }
