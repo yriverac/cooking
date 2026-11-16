@@ -191,7 +191,7 @@ function renderRecipe({id}){
   view.innerHTML = `
   <article class="wrap recipe">
     <div class="rhead">
-      ${thumb(r)}
+      <div class="stack" style="gap:8px">${thumb(r)}${S.assets && S.canWrite ? pasteZone("r-paste", r.photoUrl ? "Change photo: copy one, then tap here and paste" : "Add a photo: copy one, then tap here and paste") : ""}</div>
       <div class="stack" style="gap:10px">
         <a href="#home" class="label" style="text-decoration:none;color:var(--accent)">← ${esc(r.category || "Recipes")}</a>
         <h1>${esc(r.title)}</h1>
@@ -242,6 +242,7 @@ function renderRecipe({id}){
   $("#resetI")?.addEventListener("click", () => { prog.ing = []; save(); renderRecipe({id}); });
   $("#cook")?.addEventListener("click", () => openCook(recipeCookItems(r, k), r.title, {r, k}));
   $("#toplan").onclick = () => openPlanAdd(r.id);
+  bindPasteZone($("#r-paste"), fs => setRecipePhoto(r.id, fs[0]));
   $("#fav")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), favorite: !r.favorite}));
   $("#clearflags")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), flags: []}));
 }

@@ -148,6 +148,16 @@ ol.steps li.done .n::after{content:" ✓";font-style:normal;font-size:14px}
 .step-row .tools .iconbtn{width:32px;height:32px}
 .photo-pick{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .photo-pick .thumb{width:140px;border-radius:12px}
+.pastezone{border:2px dashed var(--rose-2);border-radius:12px;padding:14px;text-align:center;color:var(--muted);font-size:14px;font-weight:600;background:var(--surface);cursor:text;caret-color:transparent;min-height:52px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:10px}
+.pastezone:focus{outline:none;border-color:var(--accent);background:var(--soft);color:var(--accent)}
+.pastezone.over{border-color:var(--accent);background:var(--soft)}
+.pastezone.busy{color:var(--leaf);border-color:var(--leaf)}
+.pastezone.err{color:var(--alert);border-color:var(--alert)}
+.shots{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.shot{position:relative;margin:0;width:84px;height:84px;border-radius:10px;overflow:hidden;background:var(--soft)}
+.shot img{width:100%;height:100%;object-fit:cover}
+.shot .iconbtn{position:absolute;top:4px;right:4px;width:26px;height:26px}
+.shot .iconbtn svg{width:14px;height:14px}
 .sticky-save{position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));background:var(--bg);padding-block:10px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;z-index:5}
 .howto{display:grid;gap:8px}
 .howto div{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px;display:flex;gap:10px}
@@ -669,7 +679,7 @@ function renderRecipe({id}){
   view.innerHTML = `
   <article class="wrap recipe">
     <div class="rhead">
-      ${thumb(r)}
+      <div class="stack" style="gap:8px">${thumb(r)}${S.assets && S.canWrite ? pasteZone("r-paste", r.photoUrl ? "Change photo: copy one, then tap here and paste" : "Add a photo: copy one, then tap here and paste") : ""}</div>
       <div class="stack" style="gap:10px">
         <a href="#home" class="label" style="text-decoration:none;color:var(--accent)">← ${esc(r.category || "Recipes")}</a>
         <h1>${esc(r.title)}</h1>
@@ -720,6 +730,7 @@ function renderRecipe({id}){
   $("#resetI")?.addEventListener("click", () => { prog.ing = []; save(); renderRecipe({id}); });
   $("#cook")?.addEventListener("click", () => openCook(recipeCookItems(r, k), r.title, {r, k}));
   $("#toplan").onclick = () => openPlanAdd(r.id);
+  bindPasteZone($("#r-paste"), fs => setRecipePhoto(r.id, fs[0]));
   $("#fav")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), favorite: !r.favorite}));
   $("#clearflags")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), flags: []}));
 }
@@ -854,7 +865,7 @@ function drawEditor(){
       <label class="field"><span>Keeps in fridge (days)</span><input id="f-fd" type="number" inputmode="numeric" min="0" value="${d.fridgeDays ?? ""}"></label>
       <label class="field"><span>Keeps in freezer (months)</span><input id="f-fm" type="number" inputmode="numeric" min="0" value="${d.freezerMonths ?? ""}"></label>
       <div class="field full"><span>Photo</span>
-        <div class="photo-pick">${thumb(d)}<div class="stack" style="gap:6px">${S.assets ? `<div class="row"><label class="btn quiet sm" for="f-photo">Upload photo</label><input id="f-photo" type="file" accept="image/*" hidden>${d.photoUrl ? `<button type="button" class="btn sm ghost" id="rmphoto">Remove</button>` : ""}</div><span class="muted small">Or copy an image and paste it anywhere on this page.</span>` : `<span class="muted small">Photos need the recipe box owner.</span>`}</div></div></div>
+        <div class="photo-pick">${thumb(d)}<div class="stack" style="gap:6px">${S.assets ? `<div class="row"><label class="btn quiet sm" for="f-photo">Upload photo</label><input id="f-photo" type="file" accept="image/*" hidden>${d.photoUrl ? `<button type="button" class="btn sm ghost" id="rmphoto">Remove</button>` : ""}</div></div>` : `<span class="muted small">Photos need the recipe box owner.</span>`}</div></div>${S.assets ? pasteZone("f-paste", "Copy a photo, then tap here and paste") : ""}</div>
     </section>
     <section class="panel"><h2>Ingredients</h2><p class="muted small" style="margin:4px 0 10px">Amount, unit, then the ingredient. Press Enter to add the next one. Pasting a list adds every line.</p><div id="ingsecs" class="stack" style="gap:10px"></div>
       <button type="button" class="btn sm ghost" id="addIngSec" style="margin-top:10px">+ Add a section (e.g. Frosting)</button></section>
@@ -875,6 +886,7 @@ function drawEditor(){
   $("#addIngSec").onclick = () => { draft.ingredients.push({section:"New section", items:[]}); drawSecs("ing"); };
   $("#addStepSec").onclick = () => { draft.steps.push({section:"New section", items:[]}); drawSecs("step"); };
   $("#f-photo")?.addEventListener("change", e => e.target.files[0] && setPhoto(e.target.files[0]));
+  bindPasteZone($("#f-paste"), fs => setPhoto(fs[0]));
   $("#rmphoto")?.addEventListener("click", () => { bind(); d.photoUrl = ""; d.photoId = ""; drawEditor(); });
   $("#del")?.addEventListener("click", () => {
     $("#dz").innerHTML = `<span>Delete “${esc(d.title)}” for good?</span><button type="button" class="btn sm danger" id="delY">Yes, delete</button><button type="button" class="btn sm quiet" id="delN">Keep it</button>`;
@@ -959,14 +971,44 @@ async function setPhoto(file){
   try { Object.assign(draft, await uploadPhoto(file)); drawEditor(); $("#saveMsg").textContent = "Photo added. Save to keep it."; }
   catch { if ($("#saveMsg")) $("#saveMsg").textContent = "That photo couldn't upload. Try a JPG or PNG under 20 MB."; }
 }
+/* copy & paste images: a paste box (long-press then Paste on phones, Cmd/Ctrl+V elsewhere), drag and drop, or paste anywhere on the page */
+function clipImages(dt){
+  const out = []; if (!dt) return out;
+  [...(dt.items || [])].forEach(i => { if (i.kind === "file" && i.type.startsWith("image/")){ const f = i.getAsFile(); if (f) out.push(f); } });
+  if (!out.length) [...(dt.files || [])].forEach(f => { if (f.type.startsWith("image/")) out.push(f); });
+  return out;
+}
+function pastedLinkOnly(dt){ const h = dt?.getData?.("text/html") || ""; return /<img[^>]+src=/i.test(h); }
+function pasteZone(id, label){ return `<div class="pastezone" id="${id}" contenteditable="true" role="button" tabindex="0" aria-label="${esc(label)}" spellcheck="false" autocorrect="off" data-label="${esc(label)}">${esc(label)}</div>`; }
+function bindPasteZone(el, onFiles){
+  if (!el) return;
+  const reset = (t, cls) => { el.textContent = t || el.dataset.label; el.className = "pastezone" + (cls ? " " + cls : ""); };
+  el.addEventListener("paste", e => { e.preventDefault(); e.stopPropagation(); const fs = clipImages(e.clipboardData);
+    if (fs.length){ reset(fs.length > 1 ? `Added ${fs.length} images` : "Added", "busy"); onFiles(fs); setTimeout(() => el.isConnected && reset(), 1500); }
+    else reset(pastedLinkOnly(e.clipboardData) ? "That pasted a link, not the picture. Use “Copy Image” on the photo, then paste again." : "No image on the clipboard. Copy a photo or screenshot first.", "err"); });
+  el.addEventListener("beforeinput", e => { if (e.inputType !== "insertFromPaste") e.preventDefault(); });
+  el.addEventListener("drop", e => { e.preventDefault(); el.classList.remove("over"); const fs = clipImages(e.dataTransfer); if (fs.length) onFiles(fs); });
+  el.addEventListener("dragover", e => { e.preventDefault(); el.classList.add("over"); });
+  el.addEventListener("dragleave", () => el.classList.remove("over"));
+  el.addEventListener("blur", () => reset());
+}
+/* paste anywhere: editor sets the photo, recipe page sets the photo, import adds a screenshot */
 document.addEventListener("paste", e => {
-  const r = currentRoute(); if (!["new","edit"].includes(r.name) || !draft || !S.assets) return;
-  const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"))?.getAsFile(); if (!f) return;
-  e.preventDefault(); $$("#ed input,#ed textarea").forEach(()=>{}); setPhoto(f);
+  if (e.target.closest?.(".pastezone")) return;
+  const fs = clipImages(e.clipboardData); if (!fs.length) return;
+  const r = currentRoute();
+  if (["new","edit"].includes(r.name) && draft && S.assets){ e.preventDefault(); setPhoto(fs[0]); }
+  else if (r.name === "recipe" && S.assets && S.canWrite){ e.preventDefault(); setRecipePhoto(r.id, fs[0]); }
+  else if (r.name === "import" && importShots){ e.preventDefault(); importShots(fs); }
 });
+async function setRecipePhoto(id, file){
+  const r = byId(id); if (!r) return; toast("Uploading photo…");
+  try { const p = await uploadPhoto(file); await write("recipes/" + id, {...stripId(r), ...p}); toast("Photo updated"); }
+  catch { toast("That photo couldn't upload. Try a JPG or PNG under 20 MB."); }
+}
 
 /* ================= import from a link ================= */
-let importCtl = null;
+let importCtl = null, importShots = null;
 function renderImport(){
   if (!S.canWrite){ renderAdd(); return; }
   view.innerHTML = `
@@ -977,7 +1019,7 @@ function renderImport(){
     <section class="panel stack">
       <label class="field"><span>Recipe link (required)</span><div class="row" style="flex-wrap:nowrap"><input id="im-url" type="url" inputmode="url" placeholder="https://twosleevers.com/instant-pot-butter-chicken/"><a class="btn quiet" id="im-open" target="_blank" rel="noopener" href="#">Open page</a></div></label>
       <label class="field"><span>Page text</span><textarea id="im-text" rows="8" placeholder="Paste the copied page here. Ads, menus and comments are fine."></textarea></label>
-      <div class="field"><span>Screenshots (the dish photo becomes the recipe photo)</span><div class="row"><label class="btn quiet sm" for="im-img">Add screenshots</label><input id="im-img" type="file" accept="image/*" multiple hidden><span id="im-imgs" class="muted small"></span></div></div>
+      <div class="field"><span>Screenshots (the dish photo becomes the recipe photo)</span><div class="row"><label class="btn quiet sm" for="im-img">Choose screenshots</label><input id="im-img" type="file" accept="image/*" multiple hidden></div>${pasteZone("im-paste", "Or copy screenshots, then tap here and paste")}<div id="im-imgs" class="shots"></div></div>
       <div id="im-msg"></div>
       <div class="row"><button class="btn" id="im-go">Read recipe</button><button class="btn quiet" id="im-stop" hidden>Stop</button></div>
     </section>
@@ -987,7 +1029,12 @@ function renderImport(){
   url.oninput = () => { open.href = validUrl() || "#"; };
   open.onclick = e => { if (!validUrl()){ e.preventDefault(); say("Paste the full recipe link first, starting with https://", true); url.focus(); } };
   let files = [];
-  $("#im-img").onchange = e => { files = [...e.target.files]; $("#im-imgs").textContent = files.length ? `${files.length} screenshot${files.length > 1 ? "s" : ""} added` : ""; };
+  const drawShots = () => { const host = $("#im-imgs"); if (!host) return; host.querySelectorAll("img").forEach(i => URL.revokeObjectURL(i.src));
+    host.innerHTML = files.map((f, i) => `<figure class="shot"><img src="${URL.createObjectURL(f)}" alt="Screenshot ${i+1}"><button type="button" class="iconbtn" data-rmshot="${i}" aria-label="Remove screenshot ${i+1}">${ICON.x}</button></figure>`).join("");
+    $$("[data-rmshot]", host).forEach(b => b.onclick = () => { files.splice(+b.dataset.rmshot, 1); drawShots(); }); };
+  importShots = fs => { files.push(...fs); drawShots(); toast(`${fs.length} screenshot${fs.length > 1 ? "s" : ""} added`); };
+  $("#im-img").onchange = e => { importShots([...e.target.files]); e.target.value = ""; };
+  bindPasteZone($("#im-paste"), importShots);
   function say(t, err, manual){ msgEl.innerHTML = `<div class="banner ${err ? "alert" : "info"}">${err ? ICON.warn : ""}<div>${esc(t)}${manual ? `<div class="row" style="margin-top:8px"><button class="btn sm" id="im-manual">Enter it manually</button></div>` : ""}</div></div>`;
     $("#im-manual")?.addEventListener("click", () => renderEditor(null, {source: validUrl() || url.value.trim()}, "Type the recipe in. The link is saved with it.")); }
   $("#im-stop").onclick = () => importCtl?.abort();
