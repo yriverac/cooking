@@ -235,7 +235,15 @@ function renderImport(){
     const src = validUrl(), text = $("#im-text").value.trim();
     if (!src){ say("Paste the recipe's link first, starting with https://. It's saved with the recipe.", true); url.focus(); return; }
     const pre = allergenHits([text.slice(0, 20000)]);
-    if (!S.sample){ say("Reading recipes needs Claude, which isn't available in this view.", true, true); return; }
+    const readLocally = why => {
+      const got = text ? parseRecipeText(text, src) : null;
+      if (!got){ say(`${why} The app also couldn't find an Ingredients list and Instructions in the pasted text. Copy the whole recipe card and try again, or enter it manually.`, true, true); return; }
+      renderEditor(null, {...got, source: src, category: "Dinner"}, `Read from the page text (${why.replace(/\.$/, "")}). Check every field, then save.`);
+    };
+    if (!S.sample){
+      if (!text){ say("Reading screenshots needs Claude, and this view of the app doesn't allow Claude. Paste the page text instead, or open the app in a claude.ai browser tab.", true, true); return; }
+      readLocally("Claude isn't available in this view."); return;
+    }
     if (!text && !files.length){ say("Paste the page text or add screenshots. Claude can't open the link by itself.", true, true); return; }
     let imgs = [];
     if (files.length){ const lim = await S.sample.limits().catch(() => null); if (!lim?.images){ say("Screenshots don't work in this view. Paste the page text instead.", true, true); return; } imgs = files.slice(0, lim.images.maxCount); }
@@ -277,7 +285,7 @@ ${text.slice(0, 60000) || "(see screenshots)"}`;
     } catch(e){
       const c = e?.code;
       if (c === "cancelled") say("Stopped.");
-      else if (c === "not_granted" || c === "sampling_disabled") say("Claude isn't allowed on this page, so importing is off. You can enter recipes manually.", true, true);
+      else if (c === "not_granted" || c === "sampling_disabled" || c === "capability_disabled" || c === "capability_removed"){ if (text) readLocally("Claude isn't allowed on this page."); else say("Reading screenshots needs Claude, which isn't allowed on this page. Paste the page text instead.", true, true); }
       else if (c === "rate_limited") say("Claude is busy for you right now. Wait a minute and try again.", true, true);
       else if (c === "prompt_too_large") say("That page is too long. Copy just the recipe part and try again.", true, true);
       else if (c === "invalid_json") say("Claude's answer came back unreadable. Tap Read recipe to try again, or enter it manually.", true, true);

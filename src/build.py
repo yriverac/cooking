@@ -1,5 +1,5 @@
 import json,re
-core=open('core.js').read().split('if (typeof module')[0]
+core=open('core.js').read().split('if (typeof module')[0]+open('textparse.js').read()
 app=open('app.js').read().replace('/*PART2*/', open('part2.js').read().replace('/*PART3*/', open('part3.js').read()))
 seed={"recipes":json.load(open('../data/recipes.json')),"kitchen":json.load(open('../data/kitchen.json'))}
 html=open('shell.html').read()
