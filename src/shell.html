@@ -105,6 +105,10 @@ nav.tabs a[aria-current="page"]{color:var(--accent);background:var(--soft)}
 .recipe{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-block:14px 40px}
 .rhead{display:grid;gap:14px}
 .rhead .thumb{border-radius:var(--r)}
+/* recipe page: show the whole photo at its own shape (tall photos are not cropped) */
+.rhead .thumb:has(img){aspect-ratio:auto;background:var(--soft)}
+.rhead .thumb img{height:auto;max-height:72vh;object-fit:contain}
+.thumb img{object-position:center 60%}
 .rhead h1{font-size:30px}
 .facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
 .facts div{background:var(--surface);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
