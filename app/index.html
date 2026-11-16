@@ -1,0 +1,980 @@
+<title>Sazón &amp; Sugar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: recipe-blog home (hero, category rounds, card grid) + focused recipe sheet + full-screen cook mode + weekly prep board */
+:root{
+  --bg:#F7EBEE; --surface:#FFFFFF; --soft:#FBF3F5; --rose:#EBCBD4; --rose-2:#E2B6C3;
+  --ink:#3B2330; --muted:#7A6170; --line:#EAD4DB; --accent:#8C4760; --accent-ink:#FFFFFF;
+  --leaf:#4D6B3C; --warn:#B4532F;
+  --t-drinks:#F1D3DB; --t-app:#EFDCC9; --t-dess:#F4C9D3; --t-dinner:#DCC6D2; --t-other:#E6D6E4;
+  --shadow:0 1px 2px rgba(59,35,48,.06),0 8px 24px rgba(59,35,48,.07);
+  --display:"Playfair Display",Georgia,"Times New Roman",serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1C1317; --surface:#271B21; --soft:#2F2128; --rose:#4A3039; --rose-2:#5A3946;
+  --ink:#F5E6EB; --muted:#BFA5B1; --line:#3D2A33; --accent:#E59AB3; --accent-ink:#2A141D;
+  --leaf:#A9C78F; --warn:#F0A07E;
+  --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C1317; --surface:#271B21; --soft:#2F2128; --rose:#4A3039; --rose-2:#5A3946;
+  --ink:#F5E6EB; --muted:#BFA5B1; --line:#3D2A33; --accent:#E59AB3; --accent-ink:#2A141D;
+  --leaf:#A9C78F; --warn:#F0A07E;
+  --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+em.it,.it{font-family:var(--display);font-style:italic;color:var(--accent);font-weight:500}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{resize:vertical;min-height:84px}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--rose-2);border-color:var(--accent)}
+.label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:10px 18px;font-weight:600;font-size:14px;letter-spacing:.02em;text-decoration:none;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{background:var(--soft);border-color:var(--line);color:var(--ink)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;width:36px;height:36px;display:inline-grid;place-items:center;flex:none}
+.iconbtn svg{width:18px;height:18px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--muted)}
+
+/* top bar */
+.topstrip{background:var(--accent);color:var(--accent-ink);font-size:12px;letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:6px 16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-size:26px;font-weight:600;text-decoration:none;color:var(--ink);white-space:nowrap}
+.brand .it{font-size:24px}
+nav.main{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav.main a{text-decoration:none;color:var(--ink);font-size:14px;font-weight:500;padding:8px 12px;border-radius:999px}
+nav.main a[aria-current="page"]{background:var(--rose);color:var(--ink)}
+.status{font-size:12px;color:var(--muted)}
+
+/* home */
+.hero{padding-block:40px 18px;text-align:center}
+.hero h1{font-size:clamp(30px,5vw,48px);max-width:18ch;margin:0 auto}
+.hero p{color:var(--muted);max-width:52ch;margin:12px auto 0}
+.search{max-width:520px;margin:22px auto 0;position:relative}
+.search input{border-radius:999px;padding:12px 18px 12px 44px;background:var(--surface)}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+.cats{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;padding-block:22px 8px}
+.cat{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;padding:0;font-size:13px;font-weight:600;color:var(--ink)}
+.cat .disc{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;border:2px solid transparent;font-family:var(--display);font-size:28px;font-style:italic;color:var(--accent)}
+.cat[aria-pressed="true"] .disc{border-color:var(--accent)}
+.cat small{color:var(--muted);font-weight:500;font-size:12px;margin-top:-6px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-block:28px 14px;border-bottom:1px solid var(--line);padding-bottom:10px;flex-wrap:wrap}
+.section-head h2{font-size:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px}
+.card{background:var(--surface);border-radius:var(--r);overflow:hidden;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;box-shadow:var(--shadow);transition:transform .15s}
+.card:hover{transform:translateY(-2px)}
+.thumb{aspect-ratio:4/3;width:100%;max-width:100%;position:relative;display:grid;place-items:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .initial{font-family:var(--display);font-style:italic;font-size:64px;color:var(--accent);opacity:.85}
+.thumb .fav{position:absolute;top:10px;right:10px;background:var(--surface);border-radius:999px;width:30px;height:30px;display:grid;place-items:center;color:var(--accent)}
+.card .meta{padding:14px 16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .meta .label{font-size:11px;color:var(--accent)}
+.card h3{font-size:19px}
+.card .sub{font-size:13px;color:var(--muted)}
+.empty{background:var(--surface);border:1px dashed var(--rose-2);border-radius:var(--r);padding:36px 20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty h3{font-size:22px}
+
+/* recipe page */
+.recipe{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;padding-block:28px 60px}
+.recipe-head{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center}
+.recipe-head .thumb{border-radius:var(--r)}
+.recipe-head h1{font-size:clamp(30px,4.5vw,46px)}
+.facts{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px}
+.facts div{display:flex;flex-direction:column}
+.facts b{font-family:var(--display);font-size:18px;font-weight:600}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.panel{background:var(--surface);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);min-width:0}
+.panel h2{font-size:22px;margin-bottom:6px}
+.scale{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:4px;width:max-content;max-width:100%;flex-wrap:wrap}
+.scale button{border:0;background:none;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.scale button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.ing-sec{margin-top:16px}
+.ing-sec h4,.step-sec h4{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+ul.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+ul.checks li:last-child{border-bottom:0}
+.box{flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--rose-2);margin-top:2px;display:grid;place-items:center}
+li.done .box{background:var(--accent);border-color:var(--accent)}
+li.done .box::after{content:"";width:9px;height:5px;border:2px solid var(--accent-ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+li.done .txt{text-decoration:line-through;color:var(--muted)}
+.qty{font-weight:700}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
+ol.steps li::before{content:counter(s);font-family:var(--display);font-style:italic;font-size:26px;color:var(--accent);line-height:1}
+ol.steps li.done{color:var(--muted)}
+ol.steps li.done::before{content:"✓";font-style:normal;font-size:20px}
+.step-sec{margin-top:18px}
+.notes p{margin:0 0 10px}
+.side{display:flex;flex-direction:column;gap:20px;position:sticky;top:90px;align-self:start}
+.timer-chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;border:1px solid var(--rose-2);background:var(--soft);color:var(--accent);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.danger-zone{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* editor */
+.editor{padding-block:28px 80px;display:grid;grid-template-columns:minmax(0,1fr);gap:22px;max-width:860px;margin:0 auto}
+.fieldgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>span{font-size:13px;font-weight:600}
+.sec-edit{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--soft)}
+.sec-edit .sec-name{font-weight:600}
+.items{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.items li{display:flex;gap:6px;align-items:flex-start}
+.items li .n{flex:none;width:26px;padding-top:10px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.items li input,.items li textarea{flex:1;min-width:0}
+.items li textarea{min-height:44px}
+.items li .iconbtn{width:32px;height:32px;margin-top:4px}
+.adder{display:flex;gap:8px;align-items:flex-start}
+.adder input,.adder textarea{flex:1;min-width:0}
+.photo-pick{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.photo-pick .thumb{width:160px;border-radius:12px}
+.sticky-save{position:sticky;bottom:0;background:var(--bg);padding-block:12px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;z-index:5}
+.import-box{display:flex;flex-direction:column;gap:14px}
+.steps-how{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.steps-how div{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:14px}
+.steps-how b{font-family:var(--display);font-style:italic;color:var(--accent);font-size:20px;display:block}
+.msg{border-radius:12px;padding:12px 14px;font-size:14px;background:var(--soft);border:1px solid var(--line)}
+.msg.err{border-color:var(--warn);color:var(--warn)}
+
+/* prep */
+.prep-hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;align-items:end;padding-block:32px 8px}
+.prep-hero h1{font-size:clamp(32px,5vw,52px)}
+.weekcard{background:var(--surface);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.weekcard .label{grid-column:1/-1;border-bottom:1px solid var(--line);padding-bottom:8px}
+.weekcard b{font-family:var(--display);font-size:24px;font-weight:600;display:block;font-variant-numeric:tabular-nums}
+.weeknav{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.day{background:var(--surface);border-radius:12px;padding:12px;min-height:150px;display:flex;flex-direction:column;gap:8px;min-width:0;border:1px solid transparent}
+.day.today{border-color:var(--accent)}
+.day h3{font-family:var(--body);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:flex;justify-content:space-between}
+.day h3 span{color:var(--muted);font-weight:500}
+.meal{background:var(--soft);border-radius:10px;padding:8px 10px;font-size:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.meal a{color:var(--ink);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
+.meal .row{gap:4px;justify-content:space-between}
+.meal select{width:auto;padding:2px 6px;font-size:12px;border-radius:8px}
+.meal .x{border:0;background:none;color:var(--muted);font-size:13px;padding:2px}
+.addmeal{border:1px dashed var(--rose-2);background:none;border-radius:10px;padding:8px;font-size:13px;color:var(--accent);font-weight:600;margin-top:auto}
+.prep-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;margin-top:22px;padding-bottom:60px}
+.shop-group h4{margin:14px 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.shop-group .from{font-size:12px;color:var(--muted)}
+.batch{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.batch:last-child{border-bottom:0}
+.batch a{color:var(--ink);font-weight:600;text-decoration:none}
+.have{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--leaf);border:1px solid var(--leaf);border-radius:999px;padding:0 7px;margin-left:4px;vertical-align:1px}
+.have.cart{color:var(--accent);border-color:var(--accent)}
+.pantry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;align-items:start}
+.pitem{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line)}
+.pitem:last-child{border-bottom:0}
+.pitem .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.pitem.low .t::after{content:" · running low";color:var(--warn);font-size:12px;font-weight:600}
+.pitem button{border:0;background:none;color:var(--muted);font-size:12px;padding:2px 4px;border-radius:6px}
+.pitem button:hover{color:var(--accent)}
+.suggest{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.sug{display:flex;gap:12px;align-items:center;background:var(--surface);border-radius:12px;padding:10px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);min-width:0}
+.sug .thumb{width:64px;border-radius:8px;flex:none}
+.sug .thumb .initial{font-size:28px}
+.meter{height:6px;border-radius:999px;background:var(--rose);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--leaf)}
+.pill{font-size:12px;font-weight:700;background:var(--rose);border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(30,15,22,.45);z-index:60;display:grid;place-items:center;padding:16px}
+.modal{background:var(--surface);border-radius:18px;width:min(560px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.modal header{padding:18px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.modal .list{overflow:auto;padding:0 12px 14px}
+.pick{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:8px}
+.pick:hover{background:var(--soft)}
+.pick .thumb{width:56px;border-radius:8px;flex:none}
+.pick .thumb .initial{font-size:24px}
+
+/* cook mode */
+.cook{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.cook-top{display:flex;align-items:center;gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));background:var(--surface);border-bottom:1px solid var(--line)}
+.cook-top .ttl{flex:1;min-width:0}
+.cook-top .ttl div{font-family:var(--display);font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:4px;background:var(--rose)}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.cook-body{flex:1;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) 320px}
+.cook-step{padding:36px max(20px,env(safe-area-inset-left,0px)) 24px max(20px,env(safe-area-inset-right,0px));max-width:760px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px}
+.cook-step .num{font-family:var(--display);font-style:italic;color:var(--accent);font-size:22px}
+.cook-step .txt{font-size:clamp(22px,3.2vw,32px);line-height:1.4;font-weight:500}
+.cook-step .txt .qty{color:var(--accent)}
+.cook-ings{background:var(--surface);border-left:1px solid var(--line);padding:20px;overflow:auto}
+.cook-foot{display:flex;gap:10px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--line);background:var(--surface)}
+.cook-foot .btn{flex:1;justify-content:center;padding:14px}
+.recipe-switch{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--leaf);font-weight:700}
+
+/* timers */
+.timers{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.timer{background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);min-width:200px}
+.timer b{font-variant-numeric:tabular-nums;font-size:22px;font-family:var(--display)}
+.timer small{display:block;font-size:11px;opacity:.75;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timer button{border:0;background:rgba(255,255,255,.14);color:inherit;border-radius:999px;width:30px;height:30px}
+.timer.ring{background:var(--accent);color:var(--accent-ink);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:80}
+footer.site{border-top:1px solid var(--line);padding-block:24px;color:var(--muted);font-size:13px;text-align:center}
+
+@media (max-width:900px){
+  .recipe{grid-template-columns:minmax(0,1fr)}
+  .side{position:static}
+  .recipe-head{grid-template-columns:minmax(0,1fr)}
+  .days{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .prep-hero,.prep-cols{grid-template-columns:minmax(0,1fr)}
+  .cook-body{grid-template-columns:minmax(0,1fr)}
+  .cook-ings{border-left:0;border-top:1px solid var(--line)}
+}
+@media (max-width:560px){
+  .brand{font-size:22px}
+  nav.main{margin-left:0;width:100%;justify-content:space-between}
+  nav.main a{padding:6px 10px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .card h3{font-size:16px}
+  .card .meta{padding:10px 12px 14px}
+  .thumb .initial{font-size:44px}
+  .cat .disc{width:58px;height:58px;font-size:22px}
+  .cats{gap:12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="topstrip">Recipes · Cook-along · Weekly meal prep</div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#home">Sazón <span class="it">&amp;</span> Sugar</a>
+    <nav class="main" aria-label="Main">
+      <a href="#home" data-nav="home">Recipes</a>
+      <a href="#prep" data-nav="prep">Meal prep</a>
+      <a href="#pantry" data-nav="pantry">Pantry</a>
+      <a href="#new" data-nav="new" data-write>Add recipe</a>
+      <a href="#import" data-nav="import" data-write>Import</a>
+    </nav>
+  </div>
+</header>
+<main id="view"></main>
+<footer class="site"><div class="wrap"><span id="sync" class="status">Connecting to your recipe box…</span></div></footer>
+<div class="timers" id="timers" aria-live="polite"></div>
+
+<script type="application/json" id="seed">{"recipes": {"coquito-tradicional": {"title": "Coquito Tradicional", "category": "Drinks", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 Lata leche evaporada", "1 Lata leche condensada", "1 Lata crema de coco", "1 Lata leche de coco", "1/3 Taza nutella", "1 Cucharadita extracto de vainilla", "½ - 1 tbsp canela en polvo", "1 Taza ron blanco (Opcional)"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 0, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "coquito-de-nutella": {"title": "Coquito de Nutella", "category": "Drinks", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 Lata leche evaporada", "1 Lata leche condensada", "1 Lata crema de coco", "1 Lata leche de coco", "1/3 Taza nutella", "1 Cucharadita extracto de vainilla", "½ - 1 tbsp canela en polvo", "1 Taza ron blanco (Opcional)"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 1, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "strawberry-lemonade": {"title": "Strawberry lemonade", "category": "Drinks", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["260mL of lemon juice (around 7 lemons, ~37mL per lemon)", "2.2L of cold water", "450mL granulated sugar", "300g frozen strawberries"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 2, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "sorullitos": {"title": "Sorullitos", "category": "Appetizers", "source": "", "servings": "4-5 docenas", "time": "", "ingredients": [{"section": "Dulces", "items": ["6 tazas agua", "4 tazas harina", "1 1/4 taza azúcar", "1 1/4 tsp sal"]}, {"section": "Semi-Dulces", "items": ["6 tazas agua", "4 tazas harina", "1/2 taza azúcar", "2 1/4 tsp. sal"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 3, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "strawberry-jam": {"title": "Strawberry Jam", "category": "Desserts", "source": "https://www.kyleecooks.com/small-batch-strawberry-jam/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 pound fresh strawberries", "1 1/2 cup white sugar", "2 tablespoons lemon juice", "½ teaspoons lemon zest optional"]}], "steps": [{"section": "", "items": ["Wash and slice 1 pound fresh strawberries, removing the hulls and green tops.", "Add them to a saucepan, and mix 1 1/2 cup white sugar in well.", "Stir continually over medium heat, and bring the strawberries to boil.", "Once boiling, add 2 tablespoons lemon juice and ½ teaspoons lemon zest (if using).", "Boil for about 15 minutes, or until the jam reaches 220°F.", "Stir often, to make sure the jam doesn't burn.", "Pour into a jar and allow to cool.", "Cover and refrigerate.", "Use within about 2 weeks (if it lasts that long)."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 4, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "strawberry-shortcake-cake": {"title": "Strawberry Shortcake Cake", "category": "Desserts", "source": "https://celebratingsweets.com/strawberry-shortcake-cake/", "servings": "", "time": "", "ingredients": [{"section": "Cake", "items": ["2½ cups all purpose flour, spooned and leveled", "3 teaspoons baking powder", "½ teaspoon salt", "1¾ cups granulated sugar", "½ cup vegetable or canola oil", "2 large eggs, room temperature", "2 large egg whites, room temperature", "2½ teaspoons pure vanilla extract", "½ teaspoon almond extract, optional, but highly recommended", "⅔ cup sour cream", "¾ cup milk, preferably whole or 2%, room temperature"]}, {"section": "Filling", "items": ["3 cups sliced or diced fresh strawberries, divided", "2 tablespoons strawberry jam", "additional whole strawberries, for garnish, optional"]}, {"section": "Frosting", "items": ["8 ounces cream cheese, softened to cool room temp", "1 cup powdered sugar", "¾ teaspoon vanilla extract", "2¼ cups heavy whipping cream, really cold, straight from the fridge"]}], "steps": [{"section": "Cake", "items": ["Preheat oven to 350°F.", "In a medium bowl, whisk flour, baking powder, and salt until combined. Set aside.", "Using a stand mixer fitted with the paddle attachment (preferred) or a hand mixer, beat sugar, oil, eggs, egg whites, and extracts until combined. Add the sour cream and beat until combined. Add half of the flour mixture, beating until just combined. While still beating, slowly add milk, then the remaining flour mixture. Scrape the sides and bottom of the bowl as needed. Be careful not to overmix it.", "Line three 8-inch cake pans** with parchment paper and grease the pans. Evenly divide the batter between the three pans. Tap/gently drop the pans on the countertop a couple times to remove any air bubbles.", "Bake for 18-22 minutes, until a toothpick inserted into the center comes out clean. If necessary, rotate the pans once during bake time to ensure even browning. Place the pans on a rack to cool completely."]}, {"section": "Filling", "items": ["Combine the strawberries and jam and set aside (these will be used for the filling and topping). Note: I slice the strawberries for the filling (about 2½ cups), and I diced the strawberries for the top of the cake (about ½ cup). You can slice or dice, your choice. You'll need about 3 cups total."]}, {"section": "Frosting", "items": ["Place the cream cheese, powdered sugar, and vanilla extract in a large mixing bowl. Using a stand mixer with a whisk attachment (preferred) or hand mixer, beat the mixture on medium speed until smooth. While the mixer is still whipping, slowly pour the heavy cream down the side of the bowl. Stop and scrape the bottom and sides of the bowl periodically. Increase the speed to high and continue whipping until the cream can hold a stiff peak. It is important that the cream stays cold so that it will thicken properly. If you're using a hand mixer hold the bowl near the top and don't hold the bowl against your body."]}, {"section": "Assembly", "items": ["Place one layer of cake on a platter. Top with one-third of the frosting, then top with about 1¼ cups of strawberries. Place another layer of cake on top and repeat. For the third/top of layer of cake, top with remaining whipped cream frosting, then place the remaining strawberries in the center. Decorate the outside with whole strawberries, if desired."]}], "notes": ["**CAKE PANS: Using three cake pans produces cake layers that are on the thinner side (my preference for filling and stacking). If you'd prefer the cake layers thicker, or you do not have three 8-inch round cake pans, you can divide the batter between two 8-inch cake pans. Increase the bake time to 22-27 minutes.", "Prefer a 9x13? That recipe is here: Strawberry Shortcake Sheet Cake (https://celebratingsweets.com/strawberry-shortcake-sheet-cake/).", "EGGS AND MILK: To quickly bring eggs and milk to room temperature place the four eggs in a bowl of really warm tap water for about 5 minutes. Microwave the milk to take the chill off, about 15 seconds.", "FROSTING: This frosting is stabilized with cream cheese, so it tastes like a cheesecake whipped cream. If you don't want the flavor of cream cheese you can use 8-oz of mascarpone cheese instead. Just be aware that the frosting will be softer than if you use cream cheese. Alternatively, you can use vanilla buttercream frosting (https://celebratingsweets.com/vanilla-buttercream-frosting/) or freshly whipped cream (https://celebratingsweets.com/easy-homemade-whipped-cream-10-flavors/). Note: the homemade whipped cream will not be as stable, so you'll want to assemble it right before serving.", "STORING: This cake is best served the day it is made. After assembly, refrigerate the cake, then bring to cool room temperature before serving.", "MAKE AHEAD: This cake is best the day it is made. If you have to make it ahead, you can prepare the following one day in advance. Note: do not assemble until the day you are serving. Bake and cool the cake layers and wrap in wax paper and plastic wrap and store in the refrigerator. Prepare the whipped cream frosting and store it in the refrigerator. The frosting may deflate as it sits for an extended time so you might need to re-whip it before assembling. Hold off on tossing the strawberries with jam until you are assembling the cake. Store assembled cake in the refrigerator and bring to cool room temperature before serving"], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 5, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "banana-chocolate-chip-muffins": {"title": "Banana Chocolate Chip Muffins", "category": "Desserts", "source": "", "servings": "12 muffins", "time": "", "ingredients": [{"section": "", "items": ["1⅔ cups all-purpose flour, spooned into measuring cup and leveled-off", "1 teaspoon baking powder", "1 teaspoon baking soda", "½ teaspoon salt", "½ cup (1 stick) unsalted butter, at room temperature", "¾ cup plus 2 tablespoons sugar", "2 large eggs", "1 cup mashed bananas, from 2 to 3 overripe bananas", "1 teaspoon vanilla extract", "⅓ cup sour cream or plain Greek yogurt (low-fat is fine)", "½ cup semi-sweet chocolate chips", "½ cup chopped walnuts"]}], "steps": [{"section": "", "items": ["Preheat the oven to 350°F (175°C) and set an oven rack in the middle position. Line a 12-cup muffin tin with paper liners.", "In a medium bowl, whisk together the flour, baking powder, baking soda, and salt. Set aside.", "In the bowl of an electric mixer, beat the butter and sugar on medium-high speed until fluffy, about 2 minutes. Scrape down the sides of the bowl with a rubber spatula.", "At medium speed, add the eggs one at a time, beating until fully incorporated between additions.", "Add the mashed bananas, vanilla, and sour cream (or Greek yogurt) and beat until blended (the batter will look a bit curdled; that's okay).", "Add the dry ingredients and mix on low speed until well blended.", "On low speed, mix in chocolate chips and nuts evenly into the batter.", "Spoon the batter into the prepared muffin tin (the cups will be very full) and sprinkle evenly with the reserved chocolate chips. Bake the muffins until the tops are golden and domed, 23 to 25 minutes. Let the muffins cool in the pan for 10 minutes, then turn them out onto a rack and let cool for at least 10 minutes before serving. The muffins are best fresh out of the oven but will keep for up to 4 days stored in a sealed container or resealable plastic bag, in a single layer (to prevent the muffins from getting soggy, line the top and bottom of the container or bag with a single layer of paper towels)."]}], "notes": ["By Jennifer Segal (https://www.onceuponachef.com/about-jenn-segal)", "Prep Time: 20 minutes", "Cook Time: 25 minutes", "Total Time: 45 minutes"], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 6, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "brown-butter-chocolate-chip-nut-cookies-instagram": {"title": "Brown Butter Chocolate Chip Nut Cookies (Instagram version)", "category": "Desserts", "source": "https://www.instagram.com/p/DcJKsIoRepC/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["293 g all-purpose flour", "190 g dark brown sugar", "90 g granulated sugar", "2 sticks salted butter", "1 large egg + 1 egg yolk", "2 tbsp milk", "2 tsp vanilla extract", "1 tsp salt", "¾ tsp baking soda", "¼ tsp baking powder", "80 g crushed walnuts", "60 g chocolate chips", "Toffee (traders joes, store bought, or homemade)"]}], "steps": [{"section": "Brown the butter", "items": ["Place 227 g salted butter in a light-colored saucepan over medium heat.", "Melt completely, stirring/swirl occasionally. Continue cooking as it foams and bubbles.", "Once the milk solids turn deep golden brown and smell nutty/caramel-like, immediately remove from heat. DO NOT LET BURN.", "Pour into a metal mixing bowl, making sure to scrape in all the browned milk solids.", "Allow the butter to cool until it is no longer hot."]}, {"section": "Prepare the dry ingredients", "items": ["While the butter cools, combine in a separate bowl: 293 g flour, 1 tsp salt, ¾ tsp baking soda, ¼ tsp baking powder.", "Mix thoroughly and set aside."]}, {"section": "Prepare the wet mixture", "items": ["Combine 190 g dark brown sugar + 90 g granulated sugar.", "Mix until evenly distributed.", "Once the browned butter has cooled, add the sugar mixture to the butter.", "Mix thoroughly with a spatula until combined. To avoid overmixing, never use whisk or stand/hand mixer.", "Add 2 tsp vanilla, 1 whole egg, 1 egg yolk, 30 g milk, and mix with the spatula until the mixture is cohesive and the egg is fully incorporated."]}, {"section": "Add the dry ingredients", "items": ["Add half of the flour mixture.", "Fold with the spatula until partially incorporated. DO NOT mix until completely smooth. Allow clumps of flour to remain visible.", "Add the remaining flour mixture.", "Fold until mostly incorporated, leaving only a several CLUMPS of flour.", "Add walnuts and chocolate and mix until fully inforporated, leaving only some streaks of flour. Stop mixing as soon as there are no streaks of dry flour. Don't overmix."]}, {"section": "Refrigerate the dough", "items": ["Cover the bowl tightly.", "Refrigerate for at least 3 hours.", "For the best flavor and texture, refrigerate overnight."]}], "notes": ["Based on this recipe, modified for my taste."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 7, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "brown-butter-chocolate-chip-nut-cookies": {"title": "Brown Butter chocolate chip nut cookies", "category": "Desserts", "source": "https://sturbridgebakery.com/chewy-brown-butter-chocolate-chip-cookies/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["35 grams mini morsels of semi-sweet chocolate", "60g cup chopped nuts (walnuts and/or pecans)", "211 grams (15 tablespoons) unsalted butter (European style is preferred!), browned to 170 grams or 3/4 cup*", "150 grams (3/4 cup) light brown sugar", "50 grams (¼ cup) granulated sugar", "1/2 tablespoon vanilla extract", "1 egg, room temperature", "20 grams (1 heaping tablespoon) sour cream, room temperature", "1 teaspoon baking soda", "1 teaspoon baking powder", "1 teaspoon cornstarch", "1 teaspoon fine sea salt", "225 grams (about 1 3/4 cups + 1 tablespoon) all purpose flour"]}], "steps": [{"section": "", "items": ["In a small pot, melt the butter over medium heat. It will start to crack and sizzle -- let it do this while stirring occasionally. After a few minutes or so, the butter cracking/sizzling will subside and the butter will begin to foam up in the pan.", "Every few seconds or so, swirl the pan around until you can see that the butter is golden brown. You should also be able to see some of the brown bits swirling around in the butter.", "Once golden brown, immediately remove from the heat and pour the butter into a large bowl and put in the fridge to cool for 15-20 minutes.", "Chop your nuts and set aside.", "After butter has cooled, remove the butter from the fridge and add the brown sugar, granulated sugar, and vanilla extract. Whisk to combine.", "Add the egg and sour cream and whisk to combine.", "Add the baking soda, baking powder, cornstarch, and salt, and whisk until incorporated.", "Add the flour and fold it into the mixture using a rubber spatula until there are only a few streaks of flour remaining. Add the chopped nuts and chocolate chips and fold until evenly incorporated and the flour is fully mixed in. DO NOT OVERMIX.", "Cover the bowl tightly and chill the dough for at least 3 hours. Once the three hours is almost up, preheat your oven to 350F and line a baking sheet with parchment paper.", "Scoop the dough using a cookie scoop (I used a 1.5 oz scoop, about 3 tablespoons or 50 grams) and space them 2-3 inches apart on your baking sheet.", "Bake for 10-11 minutes until the edges are set and the centers still look slightly underdone. Let cool on the baking sheet for 10 minutes, then enjoy warm or transfer to a cooling rack to cool completely."]}], "notes": ["Based on this recipe, modified for my taste.", "We need ¾ cup or 170 grams of browned butter. The three extra tablespoons of butter in the recipe should account for the moisture that is evaporated during the browning process. After the butter is browned, make sure you have exactly ¾ cup or 170 grams."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 8, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "untitled-coconut-recipe": {"title": "Untitled coconut recipe (check title)", "category": "Desserts", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["¼ taza coconut flakes", "1 lata leche de coco 13.5oz", "1 lata crema de coco López", "1 lata leche condensada azucarada", "1 tsp vainilla", "1 taza agua de coco"]}], "steps": [{"section": "", "items": ["Mezclar todos los ingredientes en la licuadora y distribuir mezcla el vasitos de 7oz"]}], "notes": ["Title needs checking: in the original doc this recipe was labeled \"Brown Butter chocolate chip nut cookies\" with the Sturbridge Bakery cookie link (https://sturbridgebakery.com/chewy-brown-butter-chocolate-chip-cookies/), which looks like a copy-paste mistake. The ingredients suggest a coconut drink or limber."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 9, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "cream-cheese-danishes": {"title": "Cream Cheese Danishes", "category": "Desserts", "source": "", "servings": "", "time": "", "ingredients": [{"section": "Blackberry curd", "items": ["12 ounces blackberries, fresh or frozen", "½ cup granulated sugar (100 grams)", "1 large egg", "2 large egg yolks", "1 tablespoon lemon juice", "2 tablespoons butter (28 grams)"]}, {"section": "Cream cheese filling", "items": ["8 ounces cream cheese, softened at room temperature", "½ cup granulated sugar (100 grams)", "1 large egg yolk", "2 teaspoons vanilla extract"]}, {"section": "Remaining ingredients", "items": ["2 sheets puff pastry, thawed", "1 large egg beaten with 1 tablespoon water (egg wash)", "⅓ cup turbinado sugar (73 grams)", "6 ounces fresh blackberries, for garnish", "powdered sugar, for garnish"]}], "steps": [{"section": "", "items": ["Preheat oven to 400 degrees F. Line two baking sheets with parchment paper.", "Puree blackberries until smooth. Strain seeds and discard. Heat blackberry puree in a medium saucepot over medium heat until simmering. Reduce heat to low and continue to simmer until reduced to ½ cup, about 20 minutes. Remove from heat and let cool.", "Combine ½ cup blackberry puree (130 grams) with sugar, egg, egg yolks, and lemon juice in a medium saucepot. Heat over medium-low heat, stirring constantly. Continue to simmer until curd thickens, about 5 minutes. Remove from heat and add butter, whisking until butter is melted and fully incorporated. Strain curd through a fine-mesh sieve. Set aside and let cool.", "Make cream cheese filling. Beat together cream cheese, sugar, egg yolk, and vanilla until well combined.", "Lightly dust a clean work surface with flour. Roll out puff pastry sheets until you can cut 3 rows of 3 ½-inch circles for a total of 9 portions per sheet. Arrange the puff pastry rounds on the prepared baking sheet.", "Use a fork to prick the center of each round. Fill the center with 1 tablespoon cream cheese filling, making sure to leave a border. Brush the edges with egg wash and sprinkle about 1 teaspoon turbinado sugar on the edges. Bake Danish pastries for 15-18 minutes or until golden brown, rotating the sheet pans halfway through. Remove from oven and let cool completely.", "Fill the center of each pastry with 1 heaping tablespoon blackberry curd. Top with fresh blackberries and dust powdered sugar on top if desired."]}], "notes": ["You can divide the recipe in half to make a smaller batch if desired. Use ½ a large egg for the blackberry curd or make the entire batch and enjoy the extra curd on toast!"], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 10, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "cake-box-cookies-and-cream-cookies": {"title": "Cake box cookies and cream cookies", "category": "Desserts", "source": "https://tasty.co/recipe/cookies-n-cream-cake-mix-cookies", "servings": "12 cookies", "time": "", "ingredients": [{"section": "", "items": ["1 package white cake mix", "12 sandwich cookies, crushed", "⅓ cup oil", "2 eggs"]}], "steps": [{"section": "", "items": ["Combine cake mix, sandwich cookies, oil, and eggs in a mixing bowl.", "Using an ice cream scoop or your hand, form golf ball-sized balls of cookie dough and transfer to a parchment paper-lined baking sheet.", "Let dough rest overnight or at least 2hr.", "Bake at 350°F (180°C) for 10-12 minutes.", "Enjoy!"]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 11, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "cookies-and-cream-cookies": {"title": "Cookies and Cream Cookies", "category": "Desserts", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 1/4 cup all-purpose flour", "3/4 cup cake flour", "1 tsp. cornstarch", "1/2 tsp. baking soda", "1/2 tsp. baking powder", "1/2 tsp. salt", "1/2 cup unsalted butter, cold, cut into cubes", "1/2 cup brown sugar, light or dark, packed", "1/4 cup granulated sugar", "1 large egg", "1 large egg yolk", "1 tsp. vanilla extract", "15 Oreo Chocolate Sandwich Cookies (chopped)"]}], "steps": [{"section": "", "items": ["Preheat the oven to 375°F.", "Whisk together the dry ingredients in a large bowl: All-Purpose flour, cake flour, cornstarch, baking soda, baking powder and salt. Set aside.", "Using a stand mixer fitted with the paddle attachment, cream the cold butter with the sugars. Cream for 3-4 minute, it will look sort of like a paste. Scrape down the sides of the mixing bowl as needed.", "Then add in the egg, egg yolk, and vanilla extract and mix again until combined.", "Gradually add in the dry ingredients and then add in the chopped Oreo cookies and cookies.", "Shape dough into 7-large cookies (~5 oz. each). and bake for 10-12 minutes. Or you can make them much smaller and adjust the baking time.", "Let cookies cool on the cookie sheet for 15 minutes and then transfer to a wire cooling rack. ENJOY! ☺️"]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 12, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "red-velvet-cookies": {"title": "Red Velvet Cookies", "category": "Desserts", "source": "https://inbloombakery.com/red-velvet-cookies/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 1/2 cups + 2 tbsps (204 g) all-purpose flour, spooned and leveled", "2 tbsps (10 g) Dutch process cocoa powder", "1/2 tsp baking soda", "1/2 tsp baking powder", "1/2 tsp salt", "3/4 cup (168 g) salted butter, softened", "3/4 cup (165 g) light brown sugar", "1/4 cup (50 g) granulated white sugar", "2 egg yolks, at room temperature", "1 tbsp vanilla", "1-1 1/2 tsp red gel food coloring, (depending on how red you want the cookies)", "3/4 cup (150 g) chopped white chocolate or white chocolate chips"]}], "steps": [{"section": "", "items": ["Preheat oven to 350 degrees. Line two baking sheets with parchment paper and set aside.", "To a small bowl add the flour, cocoa powder, baking soda, baking powder and salt. Whisk to combine then set aside.", "Add softened, salted butter, light brown sugar, and granulated white sugar to a large bowl. Cream the butter and sugars with an electric mixer for two minutes, or until light and fluffy.", "Add in the egg yolks, vanilla and red food coloring and mix on medium speed for two minutes, or until the mixture is fluffy.", "Add in the dry ingredients and mix until combined.", "Then add in the white chocolate and mix just until incorporated.", "Scoop the dough into 18 balls. Arrange the dough two inches apart on the prepared baking sheets.", "Bake the cookies for 10-12 minutes. (Short amount for slightly underdone centers, full amount for a crispier edged cookie).", "Remove from the oven. Let the cookies cool for 5 minutes on the baking sheet, then transfer them to a cooling rack to cool for an additional 5 minutes before eating. (Add extra white chocolate chunks on top after baking if you desire.)", "Store leftovers in an airtight container for up to three days."]}], "notes": ["***Measure your flour properly. This is always my #1 baking tip. Do not ever scoop a measuring cup into your flour. This will always lead to using too much flour. (Trust me, I've learned the hard way that I need to measure properly!) Instead, sprinkle spoonfuls of flour into your measuring cup and swipe excess flour off with the back of a knife. Or better yet, weigh your flour. 1 cup of flour equals 125 grams."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 13, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "red-velvet-cupcakes": {"title": "Red Velvet Cupcakes", "category": "Desserts", "source": "https://www.biggerbolderbaking.com/red-velvet-cupcakes/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 ¼ cups (6 ¼oz/177g) cake flour (or a little more than 1cup AP flour + 2tbs cornstarch)", "½ teaspoon baking powder", "½ teaspoon baking soda", "½ teaspoon salt", "¾ cup (6oz/170g) sugar", "1 tablespoon (¼ oz/7g) unsweetened cocoa powder", "¼ cup (2oz/57g) butter, softened", "2 tablespoons red food coloring", "1 large egg, at room temperature", "1 teaspoon vanilla extract", "½ cup (4floz/115ml) buttermilk (or ½ cup milk + 1tbsp white vinegar)", "½ teaspoon white vinegar", "½ recipe cream cheese frosting"]}], "steps": [{"section": "Cake", "items": ["Preheat the oven to 350°F (180°C) and line a 12-cup muffin tin with paper liners.", "In the bowl of a stand mixer, or in a large bowl with a handheld mixer, stir together the cake flour, baking powder, baking soda, salt, sugar, and cocoa powder.", "Add the butter, food coloring, and egg to the dry ingredients and blend until fully combined.", "In a small bowl, combine the vanilla, buttermilk, and vinegar together and then gradually whisk into the flour mixture until well combined (but take care not to overmix).", "Divide the batter evenly into the prepared muffin cups. They should be no more than 2/3 of the way full.", "Bake for 20-25 minutes, or until a toothpick inserted into the center comes out clean.", "Let cool in the tin for 10 minutes before removing to a wire rack to fully cool.", "Once the cupcakes are completely cool, you can frost them with Cream Cheese Frosting", "Store these cupcakes in an airtight container in the refrigerator for up to two days. For longer storage, these cupcakes can be frozen in an airtight container for up to two months. Defrost for two hours at room temperature."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 14, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "cream-cheese-frosting": {"title": "Cream Cheese Frosting", "category": "Desserts", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["5 cups (1 lb 4 oz/ 575g) powdered sugar, sifted lightly to remove any lumps", "2 cups (16oz/454g) cream cheese, at room temperature", "½ cup (4oz/115g) butter, at room temperature", "1 tablespoon vanilla extract"]}], "steps": [{"section": "", "items": ["In a large bowl, using an electric mixer on medium-high cream together the cream cheese and butter.", "Once light and fluffy add in the powdered sugar and vanilla and whip until it is smooth and creamy.", "This can be stored covered in the fridge for up to 4 days."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 15, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "brownies": {"title": "Brownies", "category": "Desserts", "source": "https://bakerbynature.com/the-best-cocoa-fudge-brownies/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["1 cup (120g) all-purpose flour", "½ teaspoon baking powder", "½ teaspoon salt", "½ cup (43g) unsweetened cocoa powder", "½ teaspoon espresso powder optional (don't use if you don't like coffee)", "¾ cup (170g) unsalted butter", "2 tablespoons (28ml) oil canola, vegetable, or coconut will work", "1 and 1/3 cups (265g) granulated sugar divided", "2 large eggs", "1 large egg yolk", "2 teaspoons vanilla extract optional, but recommended", "¾ cup (128 grams) chocolate chips"]}], "steps": [{"section": "", "items": ["Preheat oven to 350 degrees (F) (175 degreed C). Line an 9x9-inch baking pan with parchment paper. Spray lightly with non-stick baking spray and set aside.", "In a large bowl, sift together the flour, baking powder, salt, cocoa powder, and espresso powder. Set aside until needed.", "In a medium saucepan, combine the butter, oil, and 1/3 cup of the sugar. Heat over medium heat, stirring frequently, until butter is completely melted. Remove from heat.", "In a large mixing bowl, combine the eggs, egg yolk, vanilla (if using) and remaining sugar. Whisk until well combined, about 30 seconds.", "Slowly, pour the warm butter mixture into the egg mixture, adding it very gradually (a little bit at a time) and whisking constantly until completely combined.", "Add in the dry ingredients and chocolate chips and, using a rubber spatula, slowly stir until just combined. *Do not over mix! Stop stirring when you see the last trace of dry ingredients. Over mixing will give you cakey brownies.", "Scrape the batter into the prepared pan and smooth the top.", "Bake for 28 (to 30 minutes) or until the edges are firm and the top is shiny and slightly cracked.", "Place pan on a cooling rack and cool completely before slicing."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 16, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "butter-chicken": {"title": "Butter Chicken", "category": "Dinner", "source": "https://www.indianhealthyrecipes.com/butter-chicken/", "servings": "", "time": "", "ingredients": [{"section": "First Marination", "items": ["½ kg (1.1 lbs) boneless chicken (cut to 1 inch pieces)", "½ to ¾ teaspoon Kashmiri red chili powder (or paprika adjust to taste, reduce for kids)", "¼ to ⅓ teaspoon salt (adjust to taste)", "¾ to 1 tablespoon lemon juice"]}, {"section": "Second Marination", "items": ["⅓ cup Greek yogurt (hung curd/thick curd, refer notes)", "¾ tablespoon ginger garlic paste (or ½ tbsp fine grated ginger + ½ tbsp fine grated garlic)", "⅛ teaspoon turmeric (haldi, optional)", "¾ to 1 teaspoon garam masala (adjust to taste)", "½ teaspoon cumin powder (optional)", "1 teaspoon coriander powder (optional)", "1 teaspoon kasuri methi (optional, dried fenugreek leaves)", "¾ to 1 tablespoon oil"]}, {"section": "For sauce", "items": ["2 to 3 tablespoons butter or ghee (divided)", "2 inch cinnamon piece (optional, for extra flavor)", "2 to 4 green cardamoms (optional, for added flavor)", "2 to 4 cloves (optional)", "1½ cups (130 grams) onions sliced (optional, *updated, cuts down acidity from tomatoes)", "600 grams (1.3 lbs.) fresh tomatoes (or 1 cup passata/canned tomato puree or ⅓ cup double concentrate tomato paste - for 1x)", "¾ tablespoon ginger garlic paste (or ½ tbsp each fine grated ginger and garlic)", "1 to 2 green chilies (optional, deseed, slit or chop)", "28 (42 grams, ⅓ cup) whole raw cashews (soaked in hot water, sub with ¼ to ⅓ cup heavy cream)", "½ cup water to blend (more if required)", "1 to 2 teaspoons Kashmiri chili powder (reduce for kids, adjust to taste)", "1 to 1½ teaspoons garam masala (divided, adjust to taste)", "1 to 1½ teaspoon coriander powder (optional, adjust to taste)", "½ teaspoon cumin powder (optional, adjust to taste)", "½ to ¾ teaspoon salt (adjust to taste)", "1 teaspoon sugar (to balance the flavors)", "½ tablespoon Kasuri methi (dried fenugreek leaves)", "1½ cups hot water to make gravy (cut down to 1 cup if omitting cashews)", "⅓ cup (80 to 100 ml) heavy cream or whipping cream (divided)", "2 tablespoons coriander leaves (fine chopped to garnish)"]}], "steps": [{"section": "", "items": ["Marinate chicken with lemon juice, chili powder and salt. Cover and rest for 20 minutes. Next add yogurt, kasuri methi, oil, turmeric, ginger garlic paste, coriander powder, cumin powder and garam masala powder.", "Marinate and rest for a minimum of 30 minutes, or overnight for best results. Cover and refrigerate.", "Optional – If using onion, sauté in 1 tablespoon oil until lightly golden, for 7 minutes. Cool down.", "To a blender, add tomatoes, sautéed onions, cashews and water. Blend to a smooth puree. If you want you can also blend the cashews separately with water to a smooth cream."]}, {"section": "Make the sauce", "items": ["Remove the chicken from the refrigerator, to bring it close to room temperature.", "Melt butter in a pan & add all the whole spices – cinnamon, cloves and cardamoms.", "When they begin to sizzle, stir in the ginger garlic paste & green chilies. Fry on a low heat, for a minute or 2, till it turns fragrant but not burnt.", "Turn off the heat and stir in red chili powder, garam masala, cumin and coriander powder.", "Stir in the tomato cashew puree. If it is not smooth, strain it to the pan.", "Mix well and cover partially. Bring it to a boil on a medium high heat, reduce the heat to low or medium. Cook until the puree turns thick, keep stirring occasionally.", "Pour hot water and simmer for 10 mins, until the sauce thickens & traces of fats are visible on top of the sauce. Remove the whole spices and discard at this stage."]}, {"section": "Grill or roast chicken", "items": ["Spread one tbsp. butter or ghee in a griddle/pan and heat it well. Place the marinated chicken pieces, spacing them a little apart.", "Fry on a medium heat for 2 mins and turn them. Don't burn and do not overcook. Cook till the chicken is just cooked and all the marinade dries up. It is not necessary to fully cook the chicken at this stage.", "This way roast the chicken pieces in 2 to 3 batches, depending on the size of your skillet."]}, {"section": "How to make Butter Chicken", "items": ["Add chicken to the butter chicken gravy. Pour more hot water (about ½ cup, not in the recipe) if the sauce is too thick. Cover and simmer for about 5 to 7 minutes till it becomes tender.", "Stir in salt, sugar and kasuri methi. Taste test and optionally add more garam masala & another tablespoon butter for additional flavour (both are optional).", "Turn off and stir in the heavy cream. Garnish Butter Chicken with chopped coriander leaves and some cream. Serve with Turmeric rice, steamed Basmati Rice, Butter naan or Cumin Rice."]}], "notes": ["Transcribed from screenshots in the original doc."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 17, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "arroz-con-gandules": {"title": "Arroz con gandules (3lbs)", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["2 latas de gandules", "1 ramo de cilantro", "1 paquete 3 lbs de arroz mediano", "5 cubos de sofrito, approx. 2-2.5 tazas", "1 pimiento rojo", "1.5 latas de salsa tomate goya", "Adobo", "Sal", "Orégano", "1 hoja de laurel"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 18, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "sirloin-steak-with-creamy-mushroom-sauce": {"title": "Sirloin Steak with Creamy Mushroom Sauce", "category": "Dinner", "source": "https://www.youtube.com/watch?v=gy-Zs-q9WW8", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["4 (6-ounce) Certified Angus Beef center cut top sirloin steaks", "2 teaspoons canola oil", "2 teaspoons salt, divided", "1/2 teaspoon pepper", "3 tablespoons butter, divided", "8 ounces mushrooms, sliced", "1 clove garlic, minced", "1 small shallot, minced (optional)", "1/2 cup unsalted beef broth", "3/4 cup heavy cream", "1 teaspoon fresh thyme, chopped"]}], "steps": [{"section": "", "items": ["Preheat oven to 325° F.", "Brush top sirloin steaks evenly with oil and season with 1 1/2 teaspoons salt and 1/2 teaspoon pepper.", "Sear steaks in medium-high skillet 2 to 3 minutes per side; reserve to a sheet pan with a wire rack. Place in oven 15 to 20 minutes, or until steaks reach 125° F internal temperature for medium rare.", "While steaks finish cooking, add 2-tablespoons of butter to the skillet and sautee mushrooms over medium-high heat 2 to 3 minutes", "Add remaining 1-tablespoon butter, garlic and shallots; saut 2 more minutes.", "Stir in beef broth, remaining 1/2-teaspoon salt and heavy cream, bring to a simmer. Lower heat to medium low, simmer 12 minutes to thicken. Sauce should thicken enough to coat the back of a spoon.", "Add fresh thyme and keep warm.", "Allow steaks to rest 5 minutes, serve with warm mushroom cream sauce."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 19, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "pernil-puertorriqueno": {"title": "Pernil Puertorriqueño (sin piel)", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["2 Pernil, 8 lbs cada uno", "24 dientes de ajo (1.5 por cada libra)", "½ taza Vinagre", "1.5 tsp Pimienta Negra", "1tbsp + 1 tsp Orégano", "Sal (1 tsp por cada libra)"]}], "steps": [{"section": "", "items": ["Mezclar ajo y vinagre en un procesador de alimentos. El vinagre debe cubrir el ajo, pero la medida en los ingredients es la correcta.", "Añadir pimienta negra (verás que el ajo se oscurecerá) y mezclar.", "Añadir oregano y mezclar.", "Cortar ranuras profundas por cada libra de pernil, de 1-2 pulgadas de ancho en ambos lados del pernil.", "Echar 1 tsp de sal en cada ranura. Masajear bien!", "Echar 1 tsp de mezcla de ajo en cada ranura.", "Echar mezcla sobrante por encima del resto del pernil.", "Cubrir con papel de aluminio y dejar marinar por 2 noches", "Cocinar cubierto a 350F por 5-6 horas", "Destapar, echar caldito/grasa derretida por encima del pernil y cocinar descubierto por 7 minutos en broil (high). Monitorear bien que no se queme.", "Remover pernil del horno y remover capa de grasa derretida con un cucharón hasta que mayormente quede el jugo del pernil.", "Cortar pernil a gusto (estofado o en trozos). Ya está listo!"]}], "notes": [], "equipment": ["Envase de aluminio para hornear (17.25 x 13 x 4in)", "Papel de aluminio", "Guantes para adobar (opcional)"], "photoId": "", "photoUrl": "", "favorite": false, "order": 20, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "ensalada-de-coditos": {"title": "Ensalada de coditos", "category": "Dinner", "source": "https://thenoshery.com/ensalada-de-coditos-puerto-rican-macaroni-salad/", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["2-lb elbow macaroni", "1/4 cup olive oil", "1 can spam, small dice", "1 medium onion, grated", "1 cup mayonnaise", "1/4 cup chopped pimento stuffed green olives", "6 hard boiled eggs, diced"]}], "steps": [{"section": "", "items": ["Bring a large pot of salted water to boil. Add the macaroni pasta and whole eggs. Cook until the pasta is al dente, about 11 minutes.", "Transfer the eggs to a bowl with ice and fill with water to cover the eggs, set them aside to cool.", "Drain the pasta in a colander and rinse under cold water to cool the pasta. Transfer the pasta to a large bowl and toss with olive oil.", "Add spam, onion, olives, and mayonnaise to the pasta. Mix until well combined.", "Peel the shell off the eggs and dice. Gently mix in the hard-boiled egg. Cover and refrigerate for 1 hour or overnight."]}], "notes": ["Leaving it to cool in the refrigerator for at least an hour will allow the flavor of the salad to develop."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 21, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "muslitos-estilo-abuela-zory": {"title": "Muslitos Estilo abuela Zory", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["10 muslitos, sin piel", "10 dientes de ajo (tamaño normal/pequeño, 5-6 si son grandes)", "2 tapitas de vinagre (~2tsp)", "Orégano, a gusto", "Adobo Goya, a gusto", "Aceite de maíz", "½ taza de agua"]}], "steps": [{"section": "", "items": ["Remover piel de los muslitos y lavar con agua.", "Adobar muslitos sin piel con ajo, oregano, vinagre y adobo Goya", "Echar muslitos en un sartén frío y profundo.", "Añadir aceite de maíz y agua. Encender fuege a medio.", "Dejar cocinar a fuege medio/bajo por ~30min (el muslo soltará mucha de su agua. Dejar evaporar el agua haste que se forme una salsita espesa).", "Remover muslos del sartén y reservarlos a un lado.", "Remover caldito/salsita espesa y reservarla en un recipiente aparte de los muslitos.", "A su discreción según cuán sucio o pegado esté los rostros de comida en el sartén, lavar sartén.", "Echar un poco de aceite al sartén y esperar que se caliente, fuego medio-alto.", "Cocinar muslitos en el sartén con aceite hasta que doren.", "Bajar a fuego bajo y añadir salsita reservada."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 22, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "bacalaitos": {"title": "Bacalaitos", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["Harina", "Agua", "Bacalao", "Perejil"]}], "steps": [{"section": "", "items": ["Enjuagar bacalao", "Cortar en trozos de dos cm y calentar bacalao en agua como por 10min", "Dejar enfriar"]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 23, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "french-onion-soup": {"title": "French Onion Soup", "category": "Dinner", "source": "https://www.recipetineats.com/french-onion-soup/", "servings": "2", "time": "", "ingredients": [{"section": "", "items": ["50 g / 1.75oz unsalted butter", "0.75 kg / 1.25 lb brown / yellow onions, peeled, halved, thinly sliced top to bottom (Note 1)", "1/2 cup (185ml) dry white wine, optional (Note 2)", "1 tbsp flour, plain / all purpose", "0.75 litres / 3 cups / good quality beef broth./stock OR chicken **doesn't have to be unsalted.", "1 dried bay leaf", "2 sprigs fresh thyme", "2tbsp soy sauce", "Salt and pepper"]}], "steps": [{"section": "Caramelise onions (see notes for slow cooker option)", "items": ["Melt butter in a heavy based casserole pot over medium heat. When it starts to foam, add onions and stir to coat in butter.", "30 min on medium low: Turn heat down to medium low. Cook for 30 minutes stirring every few minutes, until the onions have softened and are semi transparent.", "Salt, 20 min on medium high: Turn heat up to medium or medium high. Add salt, and cook for a further 20 -- 30 minutes, stirring more regularly, until onions are deep golden and sweet."]}, {"section": "Make soup", "items": ["Deglaze: Add wine, then simmer rapidly for 2 minutes until mostly evaporated, stirring to scrape the bottom of the pot.", "Flour: Sprinkle flour over the onion and cook for 1 minute.", "Add broth & herbs: Add broth, thyme and bay leaves.", "Simmer: Cover, lower heat so it's simmering gently then simmer for 30 minutes.", "Serve: Season to taste with salt and pepper. Ladle into bowls. Top with 1 or 2 slices of cheesy toast."]}, {"section": "Cheese toast", "items": ["Preheat grill / broiler to high.Toast each side of bread until light golden.", "Top bread with cheese, then grill until melted and some brown spots appear."]}], "notes": ["1. Onions -- halve them then cut from the top to bottom (see video). It makes them hold their shape better when cooking and you don't get stringy bits. But it's not a big deal! Half the onions in the video were accidentally cut the other way.", "2. Wine is used to deglaze the pot here, to get the brown stuff off the base of the pot and also the wine adds flavour into the soup broth. It's fine to skip it -- the beef broth ends up having the same deglazing effect.", "Any non-sweet, non-woody wine is fine. Sauvignon Blanc, Pinot Gris are what I use.", "3. Broth/stock -- French Onion Soup can be made with chicken or beef broth. It is more commonly made with beef stock, from what I have observed.", "Use a good quality beef stock. I personally do not recommend mainstream brands from major supermarkets in Australia. I use Maggie Beer and Moredough from Harris Farms, , or private labels from butchers.", "It is better to use chicken or vegetable broth rather than sub-standard beef broth.", "Best to use low salt and add salt if required.", "4. Bread -- The idea with the recipe is that you can use a spoon to cut through the bread into the soup to eat it (see video). So it's best not to use chewy artisan breads like sourdough. The softer the crumb, the better. Even a thick standard sandwich bread would work!", "5. SLOW COOKER CARAMELISED ONIONS (see recipe video above) -- Read in post for background. Directions: Place onions in slow cooker, toss with 2 tbsp (30g) melted butter. Slow cook on LOW for 10 hours. Onion will be browned but won't have a proper caramelised flavour. Add 2 tbsp (30g) butter into large pot over medium high heat. Tip in all the onions and SOME (not all) of the juices from slow cooker. Cook 10 to 15 minutes until deeply caramelised. Proceed with recipe.", "6. Nutrition per serving, assuming 6 servings"], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 24, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "salsa-verde": {"title": "Salsa Verde", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["8 tomatillos de hoja", "2 chiles serranos", "1/4 de cebolla", "Ajo y sal"]}], "steps": [{"section": "", "items": ["Se pone a coser en agua el tomatillo,chile y la cebolla por 20 minutos a fuego medio", "Después que está listo. Se muele con el ajo y la sal en la licuadora y si quieres es opsional puedes picar cilantro y sevolla y selo pones"]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 25, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "al-pastor": {"title": "Al Pastor", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["5lb puerco", "10 chile guaguillo", "8 ajos medianos", "Clavos 1 tsp", "Pimienta 1tsp", "Cominos 1tsp", "Tomillo1/8 tsp", "Canela entera, la mitad del tamaño de tu uña 💅🏻 pequeña", "sal", "Una tasa de vinagre blanco", "Media Cebolla"]}], "steps": [{"section": "", "items": ["Los chiles se les quita la semillas y el tronco se ponen a coser en agua asta que queden suaves", "Partes la carne en pedazos pequeños", "Después cuando se enfríe el chile le pones todos los condimentos que te dije y se muelen con sal y el vinagre y la agua de los chiles después lo cuelas y lo pones en la carne con sal para la carne lo mezclas y lo dejas marinar por una noche o días", "La mezcla de chile tiene que quedar un poco espesa y aguada no total aguada", "Para cosinar solo lo pones en una casuela y lo dejas que se cueza con su jugo que ace dela carne y el chile asta que se evapore todo y lo pruebas de sal si le falta le pones mas", "En caso de que no sientas que save a condimentos le puedes agregar más pero de los que están molidos", "Si me avisas también se nesesitas se bolla picada en medias lunas para freír y que se caramelice en la casuela donde freíste la carne la sacas y así pones la sevolla a freír con aceite y sal", "Para que te quede así tienes que dejar que se pegue un poco la carne en la casuela y después sacas la carne y la pones la sevolla con el asiente y sal y se fríe", "Si tú chile pinta mucho pole menos chiles"]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 26, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "birria": {"title": "Birria", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["5 libra de carne de vaca", "3 chiles Nuevo Mexico o Guajillo", "4 tomate", "2 cebolla", "El jugo de una china", "6 dientes de ajo 🧄", "1/4 taza de aceite", "Sal, pimienta, clavos, cominos al gusto", "6 clavos", "2 piscas tomillo", "3 piscas comino", "2 piscas orégano"]}], "steps": [{"section": "", "items": ["Picar y lavar carne, secar con toallas, marinar en bolsa ziploc", "(10-15min sofriendo)", "Fuego medio-alto", "remover semilla y venas del chile", "Freír chiles por 5-10 segundos. Algunos chiles deben quedar mas crujientes (como quemaditos) que otros. Remover del aceite.", "Freír cebolla picada en trozos y ajo completo sin picar hasta que doren.", "Agregar 3 jitomates cortados en ruedos. Freír hasta que se deshaga el tomate. Agregar chiles.", "Agregar aprox 1 taza de agua. Hervir y mezclar suavemente por 5min en total (el agua evapore un poco). sumergir chiles para facilitar hidratación. Apagar fuego y agregar especias: sal (POCO), clavos, pimienta, comino, thyme (tomillo) POQUITO, orégano POQUITO. NO MEZCLAR para que no se cozan LOS CONDIMENTOS sino que solo hidratados y blandos. Remover del fuego y dejar reposar 40min hasta que se ponga tibio. MEZCLAR en la licuadora. Dejar enfriar y luego mezclar con la carne.", "Poner olla al fuego y agua. esperar que el agua se ponga tibia. echar carne y agregar agua tibia (ponla en el micro o en la estufa) hasta que el juguito cubra la carne (2-3tazas).", "Agregar hoja de laurel y sal.", "si la carne no tiene grasa, agregar 2-3 cucharadas de aceite.", "cubrir con tapa y papel de aluminio.", "dejas cocer por 1 hr (temp 7.) y checar que la carne esté blandita. desmenuzar carne con dos tenedores. Tantear con el tiempo de cocción hasta que esté blandita a tu gusto."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 27, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "arroz-mexicano": {"title": "Arroz Mexicano", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["2 tazas agua", "2 taza arroz lavado", "1 paquete condimento achiote", "3 tomates", "2 medianos dientes ajo", "1/2 cebolla", "sal", "aceite"]}], "steps": [], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 28, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "queso-del-pais": {"title": "Queso del País", "category": "Dinner", "source": "", "servings": "", "time": "", "ingredients": [{"section": "", "items": ["½ gallon raw milk", "1 tbsp salt", "¼ cup white vinegar", "Juice of ½ lime"]}], "steps": [{"section": "", "items": ["Heat up milk until froth has formed and it ALMOST boils. Do not let it boil.", "Turn off heat and immediately add vinegar and lime juice.", "Stir to combine well.", "Wait ~5min for cheese to form.", "Strain cheese VERY WELL with a cheesecloth. Add more salt if needed."]}], "notes": [], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 29, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}, "creamy-meat-lasagna": {"title": "Creamy Meat Lasagna", "category": "Dinner", "source": "", "servings": "12 squares (two 9-inch square pans)", "time": "", "ingredients": [{"section": "", "items": ["2 to 2.5 lb ground beef, thawed", "1 large onion, diced", "6 to 8 garlic cloves, minced", "A large splash of red cooking wine (about ½ cup)", "2 jars Rao’s marinara (24 oz each)", "1 tbsp oregano, 1 tbsp garlic powder, 1 tsp paprika, adobo to taste, salt and pepper", "12 lasagna noodles (2 layers per pan), or 18 for three layers", "1 to 1½ cups shredded Mexican cheese"]}, {"section": "Creamy layer", "items": ["2 bricks cream cheese (16 oz)", "½ cup Lactaid milk or crema", "1 cup grated Parmesan (or garlic parmesan seasoning plus extra salt)", "1 egg", "1 tsp garlic powder", "Salt and pepper"]}], "steps": [{"section": "", "items": ["Noodles: Boil in salted water until just shy of al dente, about 8 minutes. Rinse with cool water and lay flat on oiled foil.", "Meat sauce: Brown the beef in a large skillet. Add the onion and cook until soft, then the garlic for 2 minutes. Pour in the wine and cook down 2 to 3 minutes. Season with adobo, oregano, garlic powder, paprika, salt and pepper. Add the marinara and simmer 15 minutes.", "Creamy layer: Beat the cream cheese with the milk, Parmesan, egg, garlic powder, salt and pepper until smooth.", "Assemble: Preheat oven to 375°F. In each pan: thin layer of sauce, noodles, sauce, creamy layer, noodles, sauce, creamy layer, then noodles and sauce. Top with shredded cheese.", "Bake: Cover with foil for 30 minutes. Uncover and bake 10 to 15 more minutes until bubbling and lightly browned.", "Rest 15 minutes before cutting."]}], "notes": ["Mild. Made for two 9-inch square pans.", "Freezing: Cool, cut into 6 squares per pan, and wrap individually. Freeze up to 3 months. Reheat from frozen at 350°F covered for about 30 minutes, or microwave with a splash of water."], "equipment": [], "photoId": "", "photoUrl": "", "favorite": false, "order": 30, "createdAt": "2026-11-16T00:34:54.473867Z", "updatedAt": "2026-11-16T00:34:54.473867Z"}}, "pantry": {"sections": [{"name": "Pantry: canned and jarred", "items": [{"text": "Carmela chicken Vienna sausage (many)", "low": false}, {"text": "Goya pinto beans, pink beans, tomato sauce, coconut cream", "low": false}, {"text": "Native Forest organic coconut milk", "low": false}, {"text": "Nestle La Lechera sweetened condensed milk", "low": false}, {"text": "Carnation evaporated milk (2) and instant nonfat dry milk", "low": false}, {"text": "Del Monte whole kernel corn", "low": false}, {"text": "StarKist chunk light tuna", "low": false}, {"text": "Pineapple juice (small cans)", "low": false}, {"text": "Cheez Whiz, Nutella, peanut butter", "low": false}, {"text": "Honey (Great Value bear, Mieles de los Valles)", "low": false}, {"text": "Roasted red peppers (jar)", "low": false}]}, {"name": "Pantry: dry goods and grains", "items": [{"text": "Maseca masa flour (4 lb, possibly 2 bags)", "low": false}, {"text": "Long grain rice (2 containers), medium grain rice (3 lb)", "low": false}, {"text": "Spaghetti, cavatappi, Barilla lasagna noodles (check if the box is full)", "low": false}, {"text": "Idahoan mashed potatoes (2 boxes)", "low": false}, {"text": "Corn Flakes crumbs, oatmeal creme pies, popcorn", "low": false}, {"text": "Corn tortillas, marshmallows, chickpeas, cupcake liners", "low": false}]}, {"name": "Baking", "items": [{"text": "AP flour, bread flour, cornstarch", "low": false}, {"text": "Sugar, powdered sugar, light brown, dark brown, turbinado", "low": false}, {"text": "Baking soda, baking powder (Royal and Davis)", "low": false}, {"text": "Chocolate chips, walnuts, pecans, unsweetened coconut", "low": false}, {"text": "Instant coffee, Café Estelo ground coffee", "low": false}, {"text": "Vanilla powder, vanilla and almond extract", "low": false}]}, {"name": "Oils, vinegars, sauces", "items": [{"text": "Canola, Crisco vegetable, Kirkland olive oil, Pam", "low": false}, {"text": "Apple cider vinegar, white vinegar", "low": false}, {"text": "Soy sauce, oyster sauce, Worcestershire, sesame oil, teriyaki", "low": false}, {"text": "Holland House white cooking wine (red is in your cart)", "low": false}, {"text": "Swanson beef broth, Knorr chicken and ham bouillon", "low": false}, {"text": "Baby Ray’s BBQ, Wishbone Caesar, chipotle sauce (mild, 2)", "low": false}, {"text": "Iodized salt, sesame seeds, dried chiles (bag), Sazón packets", "low": false}]}, {"name": "Spice rack", "items": [{"text": "Adobo, bay leaves, cilantro, cinnamon (ground and sticks), coriander, cloves", "low": false}, {"text": "Cumin (ground and seed), garlic powder, garlic herb, garlic parmesan seasoning", "low": false}, {"text": "Ginger, garam masala, onion powder, oregano, paprika, black pepper", "low": false}, {"text": "Red pepper flakes, tomillo, rosemary", "low": false}]}, {"name": "Fridge: dairy and eggs", "items": [{"text": "Lactaid milk, butter, Country Crock Light", "low": false}, {"text": "Philadelphia cream cheese (2 bricks)", "low": false}, {"text": "El Mexicano crema (2), shredded Mexican cheese, block cheese", "low": false}, {"text": "Eggs (7)", "low": false}]}, {"name": "Fridge: meat and prepared", "items": [{"text": "Cacique chorizo, Vienna sausages", "low": false}, {"text": "Shredded pulled chicken or pork", "low": false}, {"text": "Creamy soup (large tub)", "low": false}, {"text": "Titán plantillas (20), Guerrero flour tortillas", "low": false}, {"text": "Porto’s bakery bag, Gamesa cookies", "low": false}]}, {"name": "Fridge: produce", "items": [{"text": "Roma tomatoes, yellow potatoes, garlic, serranos or jalapeños", "low": false}, {"text": "Onions, red onion, iceberg lettuce, avocados, corn husks", "low": false}]}, {"name": "Fridge: condiments and drinks", "items": [{"text": "McCormick mayonesa, Heinz ketchup, Sweet Baby Ray’s, Mae Ploy sweet chili", "low": false}, {"text": "Mezzetta olives, recaito, Tropicana orange juice, Pedialyte-type drink", "low": false}, {"text": "Large jar of sauce or salsa, sauerkraut or cabbage container", "low": false}]}, {"name": "Freezer", "items": [{"text": "Kirkland 88/12 ground beef (about 4 lb, less after the lasagna)", "low": false}, {"text": "Kirkland extra lean ham (24 oz)", "low": false}, {"text": "Chicken breasts (large bag)", "low": false}, {"text": "Perdue panko chicken nuggets", "low": false}, {"text": "Sesame BBQ buns (16)", "low": false}, {"text": "Pepperidge Farm puff pastry (2 sheets)", "low": false}, {"text": "Haagen-Dazs vanilla, Salt & Straw ice cream", "low": false}, {"text": "Frozen lasagna squares (from your batch)", "low": false}]}, {"name": "Appliances and cookware", "items": [{"text": "Instant Pot Duo Plus, Sur la Table air fryer oven, Midea microwave", "low": false}, {"text": "Nutribullet, electric griddle, Kenmore stove", "low": false}, {"text": "Skillets, stainless pots, aluminum lidded pot, two 9-inch square pans", "low": false}]}], "missing": [{"text": "Parmesan"}, {"text": "Cayenne"}, {"text": "Chipotles in adobo"}, {"text": "Fresh ginger"}, {"text": "Turmeric"}, {"text": "Red cooking wine (in cart)"}], "cart": [{"text": "Silk coconut milk"}, {"text": "Lactose-free heavy cream"}, {"text": "Bacon"}, {"text": "Mangos (2)"}, {"text": "Cilantro"}, {"text": "Bananas (5)"}, {"text": "Frozen strawberries"}, {"text": "Chia seeds"}, {"text": "Red cooking wine"}, {"text": "Rao’s marinara"}], "updatedAt": "2026-11-16T00:34:54.473867Z"}}</script>
+<script>
+(() => {
+"use strict";
+/* ---------- state ---------- */
+const S = { recipes: [], loaded: false, canWrite: true, db: null, assets: null, sample: null, user: null,
+  cat: "All", q: "", scale: {}, plans: {}, planUnsub: null, planWeek: null, saving: false };
+const CATS = ["Drinks","Appetizers","Desserts","Dinner"];
+const TILE = {Drinks:"--t-drinks",Appetizers:"--t-app",Desserts:"--t-dess",Dinner:"--t-dinner"};
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const view = $("#view");
+const ICON = {
+  heart:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.1 0 3.6 1.1 5.2 3 1.6-1.9 3.1-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>',
+  heartO:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.3-9-8.6C1.6 8.3 3.5 5 6.8 5c2 0 3.4 1 5.2 3 1.8-2 3.2-3 5.2-3 3.3 0 5.2 3.3 3.8 6.4C19 15.7 12 20 12 20z"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 15 6-6 6 6"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  timer:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>'
+};
+
+/* ---------- utils ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+function toast(t){ const el = document.createElement("div"); el.className="toast"; el.textContent=t; document.body.append(el); setTimeout(()=>el.remove(), 2600); }
+function slug(t){ return (String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48) || "recipe") + "-" + Math.random().toString(36).slice(2,6); }
+function tileVar(cat){ return `var(${TILE[cat] || "--t-other"})`; }
+function thumb(r, cls=""){
+  const img = r.photoUrl ? `<img src="${esc(r.photoUrl)}" alt="" loading="lazy">` : `<span class="initial">${esc((r.title||"?").trim()[0] || "?")}</span>`;
+  return `<div class="thumb ${cls}" style="background:${tileVar(r.category)}">${img}</div>`;
+}
+function allIngredients(r){ return (r.ingredients||[]).flatMap(s => s.items||[]); }
+function flatSteps(r){ return (r.steps||[]).flatMap(s => (s.items||[]).map(t => ({section:s.section||"", text:t}))); }
+function stepCount(r){ return flatSteps(r).length; }
+function byId(id){ return S.recipes.find(r => r.id === id); }
+
+/* quantities: parse a leading amount and scale it */
+const UF = {"¼":.25,"½":.5,"¾":.75,"⅓":1/3,"⅔":2/3,"⅛":.125,"⅜":.375,"⅝":.625,"⅞":.875};
+const NUM = "(?:\\d+\\s+\\d+\\/\\d+|\\d+\\s*[¼½¾⅓⅔⅛⅜⅝⅞]|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])";
+const QRE = new RegExp(`^(\\s*)(${NUM})(\\s*(?:-|–|to|a)\\s*(${NUM}))?`);
+function toNum(s){
+  s = s.trim().replace(",", ".");
+  let m;
+  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + m[2]/m[3];
+  if ((m = s.match(/^(\d+)\s*([¼½¾⅓⅔⅛⅜⅝⅞])$/))) return +m[1] + UF[m[2]];
+  if ((m = s.match(/^(\d+)\/(\d+)$/))) return m[1]/m[2];
+  if (UF[s] != null) return UF[s];
+  return parseFloat(s);
+}
+function fmtNum(n){
+  if (n >= 20) return String(Math.round(n));
+  const whole = Math.floor(n), frac = n - whole;
+  const F = [[0,""],[.125,"⅛"],[.25,"¼"],[1/3,"⅓"],[.375,"⅜"],[.5,"½"],[.625,"⅝"],[2/3,"⅔"],[.75,"¾"],[.875,"⅞"],[1,""]];
+  let best = F[0], d = 9;
+  for (const f of F){ const dd = Math.abs(frac - f[0]); if (dd < d){ d = dd; best = f; } }
+  if (d > .04) return String(+n.toFixed(2));
+  const w = best[0] === 1 ? whole + 1 : whole;
+  return (w ? String(w) : "") + (best[1] ? best[1] : "") || "0";
+}
+function scaleLine(line, k){
+  const m = line.match(QRE);
+  if (!m) return {html: esc(line), qty: null};
+  const a = toNum(m[2]), b = m[4] ? toNum(m[4]) : null;
+  if (!isFinite(a)) return {html: esc(line), qty: null};
+  const q = k === 1 ? (m[2] + (m[3]||"")).trim() : fmtNum(a*k) + (b != null ? "–" + fmtNum(b*k) : "");
+  const rest = line.slice(m[0].length);
+  return {html: `${esc(m[1])}<span class="qty">${esc(q)}</span>${esc(rest)}`, qty: a*k, rest};
+}
+/* timers inside a step */
+function findTimes(text){
+  const out = []; const re = /(\d+(?:[.,]\d+)?)(?:\s*(?:-|–|to|a)\s*(\d+(?:[.,]\d+)?))?\s*(hours?|hrs?|horas?|hr|minutes?|mins?|minutos?|min)\b/gi; let m;
+  while ((m = re.exec(text))){
+    const unit = /^h/i.test(m[3]) ? 60 : 1;
+    const lo = parseFloat(m[1].replace(",", ".")), hi = m[2] ? parseFloat(m[2].replace(",", ".")) : null;
+    const mins = lo*unit;
+    if (mins > 0 && mins <= 24*60) out.push({mins, label: m[0].trim(), hi: hi ? hi*unit : null});
+  }
+  return out.slice(0,3);
+}
+
+/* ---------- capability bootstrap ---------- */
+const sync = $("#sync");
+function setSync(t){ sync.textContent = t; }
+async function boot(){
+  route();
+  window.addEventListener("hashchange", route);
+  const c = window.claude;
+  if (!c?.use){ setSync("Open this page in Claude to load your recipes."); S.loaded = true; route(); return; }
+  const [db, user, assets, sample] = await Promise.all(["db","user","assets","sample"].map(n => c.use(n).catch(()=>null)));
+  Object.assign(S, {db, user, assets, sample});
+  if (user){
+    try {
+      const w = await user.can?.("data.write");
+      const own = await user.isOwner?.();
+      S.canWrite = (w === null || w === undefined) ? true : (!!w || !!own);
+    } catch {}
+  }
+  if (!db){ S.loaded = true; S.canWrite = false; setSync("Sign in to Claude to see your recipes."); route(); return; }
+  let timer = setTimeout(() => setSync("Can't reach your recipe box yet. Showing what's saved on this device."), 10000);
+  subPantry();
+  db.collection("recipes").onSnapshot(snap => {
+    S.recipes = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b)=> (a.order ?? 999) - (b.order ?? 999) || String(a.title).localeCompare(b.title));
+    S.loaded = true;
+    if (!snap.metadata.fromCache){ clearTimeout(timer); setSync(`${S.recipes.length} recipes · synced across your devices`); }
+    rerenderIfSafe();
+  }, e => { clearTimeout(timer); S.loaded = true; setSync("Your recipes couldn't load. Reload the page to try again."); rerenderIfSafe(); });
+}
+function subPantry(){
+  S.db.doc("pantry/home").onSnapshot(snap => { S.pantry = snap.exists ? snap.data() : null; S.pantryKeys = null; if (["pantry","prep"].includes(currentRoute().name) && !cook.open && !document.activeElement?.matches?.("input,textarea")) route(); }, () => {});
+}
+function rerenderIfSafe(){
+  const h = currentRoute();
+  if (h.name === "new" || h.name === "edit" || h.name === "import") return; // don't wipe a form in progress
+  if (cook.open){ return; }
+  route();
+}
+
+/* ---------- routing ---------- */
+function currentRoute(){
+  const h = location.hash.replace(/^#/, "");
+  let m;
+  if (!h || h === "home") return {name:"home"};
+  if (h === "prep") return {name:"prep"};
+  if (h === "pantry") return {name:"pantry"};
+  if (h === "new") return {name:"new"};
+  if (h === "import") return {name:"import"};
+  if ((m = h.match(/^edit-(.+)$/))) return {name:"edit", id:m[1]};
+  if ((m = h.match(/^r-(.+)$/))) return {name:"recipe", id:m[1]};
+  return {name:"home"};
+}
+let lastRoute = "";
+function route(){
+  const r = currentRoute();
+  const key = r.name + (r.id||"");
+  document.querySelectorAll("[data-nav]").forEach(a => a.toggleAttribute("aria-current", false));
+  const navKey = r.name === "recipe" || r.name === "edit" ? "home" : r.name;
+  const cur = document.querySelector(`[data-nav="${navKey}"]`); if (cur) cur.setAttribute("aria-current","page");
+  document.querySelectorAll("[data-write]").forEach(a => a.hidden = !S.canWrite);
+  if (r.name === "prep") ensurePlan();
+  ({pantry: renderPantry, home: renderHome, recipe: renderRecipe, new: () => renderEditor(null), edit: renderEditFor, import: renderImport, prep: renderPrep})[r.name](r);
+  if (key !== lastRoute){ window.scrollTo(0,0); lastRoute = key; }
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  const counts = {}; S.recipes.forEach(r => counts[r.category] = (counts[r.category]||0)+1);
+  const cats = [...new Set([...CATS, ...S.recipes.map(r=>r.category).filter(Boolean)])];
+  const q = S.q.trim().toLowerCase();
+  let list = S.recipes.filter(r => S.cat === "All" || (S.cat === "Favorites" ? r.favorite : r.category === S.cat));
+  if (q) list = list.filter(r => (r.title + " " + allIngredients(r).join(" ")).toLowerCase().includes(q));
+  const greet = ["What are we", "cooking", "today?"];
+  view.innerHTML = `
+  <section class="wrap hero">
+    <h1>${greet[0]} <span class="it">${greet[1]}</span> ${greet[2]}</h1>
+    <p>Your family recipes, saved finds and weeknight dinners in one place. Open one and follow along step by step.</p>
+    <label class="search">${ICON.search}<input id="q" type="search" placeholder="Search recipes or ingredients (e.g. gandules, butter)" value="${esc(S.q)}" aria-label="Search recipes"></label>
+  </section>
+  <section class="wrap">
+    <div class="cats" role="group" aria-label="Categories">
+      ${["All", ...cats, "Favorites"].map(c => `<button class="cat" data-cat="${esc(c)}" aria-pressed="${S.cat===c}">
+        <span class="disc" style="background:${c==="All"||c==="Favorites" ? "var(--rose)" : tileVar(c)}">${c==="Favorites" ? '<span style="width:26px;height:26px;display:block">'+ICON.heart+'</span>' : esc(c[0])}</span>${esc(c)}
+        <small>${c==="All" ? S.recipes.length : c==="Favorites" ? S.recipes.filter(r=>r.favorite).length : (counts[c]||0)}</small></button>`).join("")}
+    </div>
+    <div class="section-head"><h2>${S.cat === "All" ? (q ? "Search results" : "All recipes") : esc(S.cat)}</h2>
+      <span class="row">${S.canWrite ? `<a class="btn sm" href="#new">Add a recipe</a><a class="btn sm ghost" href="#import">Import from a link</a>` : ""}</span></div>
+    ${!S.loaded ? `<div class="empty"><h3>Opening your recipe box…</h3><p class="muted">Your recipes will appear here in a moment.</p></div>`
+      : list.length ? `<div class="grid">${list.map(card).join("")}</div>`
+      : S.recipes.length ? `<div class="empty"><h3>Nothing matches “${esc(S.q || S.cat)}”</h3><p class="muted">Try another word, or clear the search.</p><button class="btn quiet" id="clear">Show all recipes</button></div>`
+      : `<div class="empty"><h3>Your recipe box is empty</h3><p class="muted">${S.canWrite && S.db ? `Your ${Object.keys(SEED.recipes).length} recipes from “My Cooking Recipes” and your pantry inventory are ready to load.` : "Add your first recipe by typing it in, or paste one from a website."}</p><div class="row">${S.canWrite && S.db ? `<button class="btn" id="loadseed">Load my recipes</button>` : ""}<a class="btn ghost" href="#new">Add a recipe</a></div><p class="muted" id="seedmsg" style="font-size:13px;margin:0"></p></div>`}
+    <div style="height:56px"></div>
+  </section>`;
+  const qi = $("#q");
+  qi.addEventListener("input", () => { S.q = qi.value; const pos = qi.selectionStart; renderHome(); const n = $("#q"); n.focus(); n.setSelectionRange(pos,pos); });
+  view.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { S.cat = b.dataset.cat; renderHome(); });
+  $("#loadseed")?.addEventListener("click", loadSeed);
+  $("#clear")?.addEventListener("click", () => { S.q = ""; S.cat = "All"; renderHome(); });
+}
+function card(r){
+  const n = allIngredients(r).length, st = stepCount(r);
+  return `<a class="card" href="#r-${esc(r.id)}">${thumb(r).replace('</div>', r.favorite ? `<span class="fav">${ICON.heart.replace('<svg','<svg width="16" height="16"')}</span></div>` : '</div>')}
+    <div class="meta"><span class="label">${esc(r.category || "Recipe")}</span><h3>${esc(r.title)}</h3>
+    <span class="sub">${n} ingredients${st ? ` · ${st} steps` : ""}${r.servings ? ` · ${esc(r.servings)}` : ""}</span></div></a>`;
+}
+
+let SEED = {recipes:{}, pantry:null};
+try { SEED = JSON.parse(document.getElementById("seed").textContent); } catch {}
+async function loadSeed(){
+  const b = $("#loadseed"), m = $("#seedmsg"); if (b) b.disabled = true;
+  const entries = Object.entries(SEED.recipes); let n = 0;
+  try {
+    for (const [id, d] of entries){ if (!byId(id)) await S.db.collection("recipes").doc(id).set(d); n++; if (m) m.textContent = `Loading ${n} of ${entries.length}…`; }
+    if (SEED.pantry && !S.pantry) await S.db.doc("pantry/home").set(SEED.pantry);
+    toast("Your recipes are in");
+  } catch(e){ if (m) m.textContent = `Stopped after ${n} recipes. Tap Load my recipes again to finish.`; if (b) b.disabled = false; }
+}
+
+/* ---------- recipe view ---------- */
+function progressKey(id){ return "progress:" + id; }
+function renderRecipe({id}){
+  const r = byId(id);
+  if (!r){ view.innerHTML = `<div class="wrap" style="padding-block:60px"><div class="empty"><h3>${S.loaded ? "This recipe isn't in your box" : "Opening recipe…"}</h3>${S.loaded ? '<a class="btn" href="#home">Back to recipes</a>' : ""}</div></div>`; return; }
+  const k = S.scale[id] || 1;
+  const prog = store.get(progressKey(id), {ing:[], steps:[]});
+  let ii = 0, si = 0;
+  const host = r.source ? (()=>{ try { return new URL(r.source).hostname.replace(/^www\./,""); } catch { return r.source; } })() : "";
+  view.innerHTML = `
+  <article class="wrap recipe">
+    <div class="recipe-head">
+      ${thumb(r)}
+      <div>
+        <a href="#home" class="label" style="text-decoration:none;color:var(--accent)">← ${esc(r.category || "Recipes")}</a>
+        <h1 style="margin-top:10px">${esc(r.title)}</h1>
+        <div class="facts">
+          ${r.servings ? `<div><span class="label">Makes</span><b>${esc(r.servings)}${k!==1?` ×${fmtNum(k)}`:""}</b></div>` : ""}
+          ${r.time ? `<div><span class="label">Time</span><b>${esc(r.time)}</b></div>` : ""}
+          <div><span class="label">Ingredients</span><b>${allIngredients(r).length}</b></div>
+          <div><span class="label">Steps</span><b>${stepCount(r)}</b></div>
+        </div>
+        ${host ? `<p style="margin:14px 0 0" class="muted">From <a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(host)}</a></p>` : ""}
+        <div class="actions">
+          ${stepCount(r) ? `<button class="btn" id="cook">Start cooking</button>` : ""}
+          <button class="btn ghost" id="toprep">Add to meal prep</button>
+          ${S.canWrite ? `<button class="btn quiet" id="fav" aria-pressed="${!!r.favorite}">${r.favorite ? "★ Favorite" : "☆ Favorite"}</button><a class="btn quiet" href="#edit-${esc(r.id)}">Edit</a>` : ""}
+        </div>
+      </div>
+    </div>
+    <div style="min-width:0;display:flex;flex-direction:column;gap:20px">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between"><h2>Instructions</h2>${prog.steps.length ? `<button class="btn sm quiet" id="resetS">Reset progress</button>` : ""}</div>
+        ${(r.steps||[]).length ? (r.steps||[]).map(sec => `<div class="step-sec">${sec.section ? `<h4>${esc(sec.section)}</h4>` : ""}
+          <ol class="steps" style="counter-reset:s ${si}">${(sec.items||[]).map(t => { const i = si++; const times = findTimes(t);
+            return `<li data-s="${i}" class="${prog.steps.includes(i) ? "done" : ""}"><div>${esc(t)}${times.length ? `<div>${times.map(tm => `<button class="timer-chip" data-timer="${tm.mins}" data-label="${esc(r.title)}: ${esc(tm.label)}">${ICON.timer} ${esc(tm.label)}</button>`).join(" ")}</div>` : ""}</div></li>`; }).join("")}</ol></div>`).join("")
+          : `<p class="muted">No steps saved yet.${S.canWrite ? ` <a href="#edit-${esc(r.id)}">Add them</a>.` : ""}</p>`}
+      </section>
+      ${(r.notes||[]).length ? `<section class="panel notes"><h2>Notes</h2>${r.notes.map(n => `<p>${esc(n)}</p>`).join("")}</section>` : ""}
+      ${(r.equipment||[]).length ? `<section class="panel"><h2>Equipment</h2><ul>${r.equipment.map(n => `<li>${esc(n)}</li>`).join("")}</ul></section>` : ""}
+    </div>
+    <aside class="side">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between"><h2>Ingredients</h2></div>
+        <div class="scale" role="group" aria-label="Scale recipe">${[.5,1,2,3].map(x => `<button data-k="${x}" aria-pressed="${k===x}">${x===.5?"½":x}×</button>`).join("")}</div>
+        ${(r.ingredients||[]).map(sec => `<div class="ing-sec">${sec.section ? `<h4>${esc(sec.section)}</h4>` : ""}<ul class="checks">${(sec.items||[]).map(t => { const i = ii++;
+          return `<li data-i="${i}" class="${prog.ing.includes(i) ? "done" : ""}"><span class="box"></span><span class="txt">${scaleLine(t,k).html}${pantryHas(t) ? ` <span class="have">in pantry</span>` : ""}</span></li>`; }).join("")}</ul></div>`).join("")}
+        ${prog.ing.length ? `<button class="btn sm quiet" id="resetI" style="margin-top:12px">Uncheck all</button>` : ""}
+      </section>
+    </aside>
+  </article>`;
+  const save = () => store.set(progressKey(id), prog);
+  view.querySelectorAll("[data-i]").forEach(li => li.onclick = () => { const i = +li.dataset.i; const at = prog.ing.indexOf(i); at<0 ? prog.ing.push(i) : prog.ing.splice(at,1); li.classList.toggle("done"); save(); });
+  view.querySelectorAll("[data-s]").forEach(li => li.onclick = e => { if (e.target.closest("[data-timer]")) return; const i = +li.dataset.s; const at = prog.steps.indexOf(i); at<0 ? prog.steps.push(i) : prog.steps.splice(at,1); li.classList.toggle("done"); save(); });
+  view.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { S.scale[id] = +b.dataset.k; renderRecipe({id}); });
+  view.querySelectorAll("[data-timer]").forEach(b => b.onclick = e => { e.stopPropagation(); startTimer(+b.dataset.timer, b.dataset.label); });
+  $("#resetS")?.addEventListener("click", () => { prog.steps = []; save(); renderRecipe({id}); });
+  $("#resetI")?.addEventListener("click", () => { prog.ing = []; save(); renderRecipe({id}); });
+  $("#cook")?.addEventListener("click", () => openCook([r], k));
+  $("#toprep").onclick = () => openDayPicker(r);
+  $("#fav")?.addEventListener("click", async () => { try { await S.db.collection("recipes").doc(r.id).update({favorite: !r.favorite}); } catch(e){ toast("Couldn't save. Try again."); } });
+}
+
+/* ---------- cook mode ---------- */
+const cook = { open:false, list:[], idx:0, k:1, lock:null, showIngs:true };
+function openCook(recipes, k=1, kMap){
+  cook.list = []; cook.recipes = recipes; cook.kMap = kMap || {};
+  recipes.forEach(r => flatSteps(r).forEach((s, i, all) => cook.list.push({r, ...s, n:i+1, of:all.length})));
+  if (!cook.list.length){ toast("These recipes have no steps yet."); return; }
+  cook.idx = 0; cook.k = k; cook.open = true;
+  const el = document.createElement("div"); el.className = "cook"; el.id = "cook"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Cook mode");
+  document.body.append(el); document.body.style.overflow = "hidden";
+  requestWake(); drawCook();
+  document.addEventListener("keydown", cookKeys);
+}
+function closeCook(){ cook.open = false; $("#cook")?.remove(); document.body.style.overflow = ""; document.removeEventListener("keydown", cookKeys); try { cook.lock?.release(); } catch {} cook.lock = null; route(); }
+function cookKeys(e){ if (e.key === "ArrowRight") move(1); else if (e.key === "ArrowLeft") move(-1); else if (e.key === "Escape") closeCook(); }
+function move(d){ cook.idx = Math.max(0, Math.min(cook.list.length - 1, cook.idx + d)); drawCook(); }
+async function requestWake(){ try { cook.lock = await navigator.wakeLock?.request("screen"); } catch {} }
+document.addEventListener("visibilitychange", () => { if (cook.open && document.visibilityState === "visible") requestWake(); });
+function drawCook(){
+  const el = $("#cook"); if (!el) return;
+  const s = cook.list[cook.idx], r = s.r, multi = cook.recipes.length > 1;
+  const k = cook.kMap[r.id] || cook.k;
+  const times = findTimes(s.text);
+  const pct = ((cook.idx + 1) / cook.list.length) * 100;
+  const last = cook.idx === cook.list.length - 1;
+  el.innerHTML = `
+    <div class="cook-top">
+      <button class="iconbtn" id="cx" aria-label="Close cook mode">${ICON.x}</button>
+      <div class="ttl"><span class="label">${multi ? `Prep session · recipe ${cook.recipes.indexOf(r)+1} of ${cook.recipes.length}` : "Cook mode"}</span><div>${esc(r.title)}</div></div>
+      <button class="btn sm quiet" id="ti">${cook.showIngs ? "Hide" : "Show"} ingredients</button>
+    </div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="cook-body">
+      <div class="cook-step">
+        ${multi && s.n === 1 ? `<span class="recipe-switch">Now starting: ${esc(r.title)}${k!==1 ? ` (×${fmtNum(k)})` : ""}</span>` : ""}
+        ${s.section ? `<span class="label">${esc(s.section)}</span>` : ""}
+        <span class="num">Step ${s.n} of ${s.of}</span>
+        <div class="txt">${esc(s.text)}</div>
+        ${times.length ? `<div class="row">${times.map(t => `<button class="btn ghost" data-timer="${t.mins}" data-label="${esc(r.title)}: ${esc(t.label)}">${ICON.timer} Start ${esc(t.label)} timer</button>`).join("")}</div>` : ""}
+        ${last ? `<p class="it" style="font-size:24px;margin:10px 0 0">¡Buen provecho! That's the last step.</p>` : ""}
+      </div>
+      ${cook.showIngs ? `<aside class="cook-ings"><h2 style="font-size:20px;margin-bottom:8px">Ingredients${k!==1 ? ` ×${fmtNum(k)}` : ""}</h2>
+        ${(r.ingredients||[]).map(sec => `${sec.section ? `<h4 class="label" style="color:var(--accent);margin:12px 0 4px">${esc(sec.section)}</h4>` : ""}<ul class="checks">${(sec.items||[]).map(t => `<li><span class="box"></span><span class="txt">${scaleLine(t,k).html}</span></li>`).join("")}</ul>`).join("")}</aside>` : ""}
+    </div>
+    <div class="cook-foot">
+      <button class="btn quiet" id="cp" ${cook.idx===0?"disabled":""}>← Back</button>
+      ${last ? `<button class="btn" id="cdone">Finish</button>` : `<button class="btn" id="cn">Next step →</button>`}
+    </div>`;
+  $("#cx").onclick = closeCook; $("#cp").onclick = () => move(-1);
+  $("#cn")?.addEventListener("click", () => move(1));
+  $("#cdone")?.addEventListener("click", closeCook);
+  $("#ti").onclick = () => { cook.showIngs = !cook.showIngs; drawCook(); };
+  el.querySelectorAll(".cook-ings li").forEach(li => li.onclick = () => li.classList.toggle("done"));
+  el.querySelectorAll("[data-timer]").forEach(b => b.onclick = () => startTimer(+b.dataset.timer, b.dataset.label));
+  let x0 = null; const body = $(".cook-step", el);
+  body.addEventListener("touchstart", e => x0 = e.touches[0].clientX, {passive:true});
+  body.addEventListener("touchend", e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 60) move(dx < 0 ? 1 : -1); x0 = null; });
+}
+
+/* ---------- timers ---------- */
+const timers = []; let actx = null;
+function startTimer(mins, label){
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume?.(); } catch {}
+  timers.push({id: Math.random(), end: Date.now() + mins*60000, label, ring:false, paused:null});
+  toast(`Timer set for ${fmtNum(mins)} min`); drawTimers();
+}
+function beep(){ if (!actx) return; try { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+.5); o.start(); o.stop(actx.currentTime+.55); } catch {} }
+function drawTimers(){
+  const host = $("#timers");
+  host.innerHTML = timers.map(t => { const left = t.paused != null ? t.paused : Math.max(0, t.end - Date.now()); const m = Math.floor(left/60000), s = Math.floor(left/1000)%60;
+    return `<div class="timer ${t.ring?"ring":""}" data-id="${t.id}"><div><b>${t.ring ? "Done!" : `${m}:${String(s).padStart(2,"0")}`}</b><small>${esc(t.label)}</small></div>
+    ${t.ring ? "" : `<button data-act="pause" aria-label="${t.paused!=null?"Resume":"Pause"} timer">${t.paused!=null?"▶":"❚❚"}</button>`}<button data-act="x" aria-label="Dismiss timer">✕</button></div>`; }).join("");
+  host.querySelectorAll(".timer").forEach(el => el.onclick = e => { const b = e.target.closest("button"); if (!b) return; const i = timers.findIndex(t => String(t.id) === el.dataset.id); if (i<0) return; const t = timers[i];
+    if (b.dataset.act === "x") timers.splice(i,1); else if (t.paused != null){ t.end = Date.now() + t.paused; t.paused = null; } else { t.paused = Math.max(0, t.end - Date.now()); } drawTimers(); });
+}
+setInterval(() => { if (!timers.length) return; let ringing = false; timers.forEach(t => { if (t.paused == null && !t.ring && Date.now() >= t.end){ t.ring = true; try { navigator.vibrate?.([300,150,300]); } catch {} } if (t.ring) ringing = true; }); if (ringing && Math.floor(Date.now()/1000) % 2 === 0) beep(); drawTimers(); }, 1000);
+
+/* ---------- editor ---------- */
+let draft = null;
+function blankDraft(){ return {id:null, title:"", category:"Dinner", servings:"", time:"", source:"", photoId:"", photoUrl:"", notes:[], ingredients:[{section:"",items:[]}], steps:[{section:"",items:[]}]}; }
+function renderEditFor({id}){
+  const r = byId(id);
+  if (!r){ view.innerHTML = `<div class="wrap" style="padding-block:60px"><div class="empty"><h3>${S.loaded ? "This recipe isn't in your box" : "Opening recipe…"}</h3></div></div>`; if (!S.loaded) setTimeout(()=>{ if (currentRoute().name==="edit") route(); }, 1200); return; }
+  renderEditor(r);
+}
+function renderEditor(r, prefill){
+  if (!S.canWrite){ view.innerHTML = `<div class="wrap" style="padding-block:60px"><div class="empty"><h3>Only the owner can change recipes</h3><a class="btn" href="#home">Back to recipes</a></div></div>`; return; }
+  draft = prefill ? {...blankDraft(), ...prefill} : r ? JSON.parse(JSON.stringify(r)) : blankDraft();
+  if (!draft.ingredients?.length) draft.ingredients = [{section:"",items:[]}];
+  if (!draft.steps?.length) draft.steps = [{section:"",items:[]}];
+  drawEditor(r);
+}
+function drawEditor(orig){
+  const cats = [...new Set([...CATS, ...S.recipes.map(x=>x.category).filter(Boolean), draft.category].filter(Boolean))];
+  const isNew = !draft.id;
+  view.innerHTML = `
+  <form class="wrap editor" id="ed" autocomplete="off">
+    <div><span class="label">${isNew ? "New recipe" : "Editing"}</span><h1 style="font-size:clamp(28px,4vw,40px);margin-top:6px">${isNew ? `Add a <span class="it">recipe</span>` : esc(draft.title || "Recipe")}</h1></div>
+    <section class="panel fieldgrid">
+      <label class="field" style="grid-column:1/-1"><span>Recipe name</span><input id="f-title" required value="${esc(draft.title)}" placeholder="e.g. Arroz con gandules"></label>
+      <label class="field"><span>Category</span><select id="f-cat">${cats.map(c => `<option ${c===draft.category?"selected":""}>${esc(c)}</option>`).join("")}<option value="__new">New category…</option></select></label>
+      <label class="field"><span>Makes / servings</span><input id="f-serv" value="${esc(draft.servings)}" placeholder="e.g. 4 servings, 18 cookies"></label>
+      <label class="field"><span>Time</span><input id="f-time" value="${esc(draft.time)}" placeholder="e.g. 45 min"></label>
+      <label class="field"><span>Original link (optional)</span><input id="f-src" type="url" value="${esc(draft.source)}" placeholder="https://"></label>
+      <div class="field" style="grid-column:1/-1"><span>Photo</span>
+        <div class="photo-pick">${thumb(draft)}<div class="row">${S.assets ? `<label class="btn quiet sm" for="f-photo">Choose photo</label><input id="f-photo" type="file" accept="image/*" hidden>` : `<span class="muted">Photos can be added by the recipe box owner.</span>`}${draft.photoUrl ? `<button type="button" class="btn sm ghost" id="rmphoto">Remove photo</button>` : ""}</div></div></div>
+    </section>
+    <section class="panel"><h2>Ingredients</h2><p class="muted" style="margin:0 0 12px">Type one ingredient and press Enter. Pasting several lines adds each line.</p><div id="ingsecs" style="display:flex;flex-direction:column;gap:12px"></div>
+      <button type="button" class="btn sm ghost" id="addIngSec" style="margin-top:12px">+ Add a section (e.g. Frosting)</button></section>
+    <section class="panel"><h2>Instructions</h2><p class="muted" style="margin:0 0 12px">Add steps one at a time. Times like “15 minutes” get a timer button in cook mode.</p><div id="stepsecs" style="display:flex;flex-direction:column;gap:12px"></div>
+      <button type="button" class="btn sm ghost" id="addStepSec" style="margin-top:12px">+ Add a section (e.g. Make the sauce)</button></section>
+    <section class="panel"><h2>Notes</h2><label class="field"><span class="muted" style="font-weight:400">One note per line</span><textarea id="f-notes" rows="4">${esc((draft.notes||[]).join("\n"))}</textarea></label></section>
+    ${!isNew ? `<section class="panel"><h2>Delete recipe</h2><div class="danger-zone" id="dz"><button type="button" class="btn sm ghost" id="del" style="color:var(--warn);border-color:var(--warn)">Delete this recipe</button></div></section>` : ""}
+    <div class="sticky-save"><span id="saveMsg" class="muted" style="margin-right:auto;align-self:center"></span><a class="btn quiet" href="${isNew ? "#home" : "#r-" + esc(draft.id)}">Cancel</a><button class="btn" type="submit" id="saveBtn">Save recipe</button></div>
+  </form>`;
+  const bindTop = () => {
+    draft.title = $("#f-title").value; draft.servings = $("#f-serv").value; draft.time = $("#f-time").value; draft.source = $("#f-src").value;
+    draft.notes = $("#f-notes").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  };
+  ["#f-title","#f-serv","#f-time","#f-src","#f-notes"].forEach(s => $(s).addEventListener("input", bindTop));
+  $("#f-cat").onchange = e => { if (e.target.value === "__new"){ const box = document.createElement("input"); box.placeholder = "Category name"; box.id = "f-newcat"; e.target.replaceWith(box); box.focus(); box.oninput = () => draft.category = box.value.trim() || "Other"; } else draft.category = e.target.value; };
+  drawSections("ing"); drawSections("step");
+  $("#addIngSec").onclick = () => { draft.ingredients.push({section:"New section", items:[]}); drawSections("ing"); };
+  $("#addStepSec").onclick = () => { draft.steps.push({section:"New section", items:[]}); drawSections("step"); };
+  $("#f-photo")?.addEventListener("change", async e => { const f = e.target.files[0]; if (!f) return; $("#saveMsg").textContent = "Uploading photo…";
+    try { const blob = await shrink(f); const a = await S.assets.upload(blob); draft.photoId = a.id; draft.photoUrl = a.url; bindTop(); drawEditor(orig); $("#saveMsg").textContent = "Photo added. Save to keep it."; }
+    catch(err){ $("#saveMsg").textContent = "That photo couldn't upload. Try a smaller JPG or PNG."; } });
+  $("#rmphoto")?.addEventListener("click", () => { draft.photoId = ""; draft.photoUrl = ""; bindTop(); drawEditor(orig); });
+  $("#del")?.addEventListener("click", () => {
+    $("#dz").innerHTML = `<span>Delete “${esc(draft.title)}” for good?</span><button type="button" class="btn sm" id="delY" style="background:var(--warn);border-color:var(--warn)">Yes, delete</button><button type="button" class="btn sm quiet" id="delN">Keep it</button>`;
+    $("#delN").onclick = () => drawEditor(orig);
+    $("#delY").onclick = async () => { try { await S.db.collection("recipes").doc(draft.id).delete(); toast("Recipe deleted"); location.hash = "#home"; } catch { toast("Couldn't delete. Try again."); } };
+  });
+  $("#ed").onsubmit = async e => {
+    e.preventDefault(); bindTop();
+    // also grab any text left in "add" boxes
+    view.querySelectorAll("[data-adder]").forEach(inp => { const v = inp.value.trim(); if (v){ const [kind, si] = inp.dataset.adder.split(":"); (kind==="ing"?draft.ingredients:draft.steps)[+si].items.push(v); } });
+    if (!draft.title.trim()){ $("#saveMsg").textContent = "Give the recipe a name first."; $("#f-title").focus(); return; }
+    const clean = secs => secs.map(s => ({section:(s.section||"").trim(), items:s.items.map(x=>x.trim()).filter(Boolean)})).filter(s => s.items.length || s.section);
+    const doc = {title: draft.title.trim(), category: draft.category || "Other", servings: draft.servings.trim(), time: (draft.time||"").trim(), source: draft.source.trim(),
+      photoId: draft.photoId || "", photoUrl: draft.photoUrl || "", notes: draft.notes, ingredients: clean(draft.ingredients), steps: clean(draft.steps),
+      equipment: draft.equipment || [], favorite: !!draft.favorite, order: draft.order ?? 1000, updatedAt: new Date().toISOString(), createdAt: draft.createdAt || new Date().toISOString()};
+    const id = draft.id || slug(doc.title);
+    $("#saveBtn").disabled = true; $("#saveMsg").textContent = "Saving…";
+    try { await S.db.collection("recipes").doc(id).set(doc); toast("Recipe saved"); location.hash = "#r-" + id; }
+    catch(err){ $("#saveBtn").disabled = false; $("#saveMsg").textContent = err?.code === "quota_exceeded" ? "Your recipe box is full. Delete a recipe to make room." : "Couldn't save. Check your connection and try again."; }
+  };
+}
+function drawSections(kind){
+  const secs = kind === "ing" ? draft.ingredients : draft.steps;
+  const host = $(kind === "ing" ? "#ingsecs" : "#stepsecs");
+  const multi = secs.length > 1 || secs[0]?.section;
+  host.innerHTML = secs.map((s, si) => `
+    <div class="sec-edit">
+      ${multi ? `<div class="row"><input class="sec-name" data-secname="${si}" value="${esc(s.section)}" placeholder="Section name (optional)" style="flex:1;min-width:0"><button type="button" class="iconbtn" data-rmsec="${si}" aria-label="Remove section">${ICON.x}</button></div>` : ""}
+      <ol class="items">${s.items.map((it, i) => `<li><span class="n">${i+1}.</span>${kind==="ing" ? `<input data-item="${si}:${i}" value="${esc(it)}">` : `<textarea data-item="${si}:${i}" rows="2">${esc(it)}</textarea>`}
+        <button type="button" class="iconbtn" data-mv="${si}:${i}:-1" aria-label="Move up">${ICON.up}</button><button type="button" class="iconbtn" data-mv="${si}:${i}:1" aria-label="Move down">${ICON.down}</button><button type="button" class="iconbtn" data-rm="${si}:${i}" aria-label="Remove">${ICON.x}</button></li>`).join("")}</ol>
+      <div class="adder">${kind==="ing" ? `<input data-adder="ing:${si}" placeholder="e.g. 2 cups white rice">` : `<textarea data-adder="step:${si}" rows="2" placeholder="Describe the next step"></textarea>`}<button type="button" class="btn sm" data-add="${si}">Add</button></div>
+    </div>`).join("");
+  host.querySelectorAll("[data-item]").forEach(el => el.oninput = () => { const [si,i] = el.dataset.item.split(":").map(Number); secs[si].items[i] = el.value; });
+  host.querySelectorAll("[data-secname]").forEach(el => el.oninput = () => secs[+el.dataset.secname].section = el.value);
+  host.querySelectorAll("[data-rmsec]").forEach(b => b.onclick = () => { const si = +b.dataset.rmsec; if (secs.length > 1){ const moved = secs.splice(si,1)[0]; secs[Math.max(0,si-1)].items.push(...moved.items); } else secs[0].section = ""; drawSections(kind); });
+  host.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const [si,i] = b.dataset.rm.split(":").map(Number); secs[si].items.splice(i,1); drawSections(kind); });
+  host.querySelectorAll("[data-mv]").forEach(b => b.onclick = () => { const [si,i,d] = b.dataset.mv.split(":").map(Number); const j = i + d; const arr = secs[si].items; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; drawSections(kind); });
+  const add = (si, focus=true) => { const inp = host.querySelector(`[data-adder="${kind}:${si}"]`); const lines = inp.value.split("\n").map(s=>s.replace(/^\s*(?:[-•▢*]|\d+[.)])\s*/,"").trim()).filter(Boolean); if (!lines.length) return; secs[si].items.push(...lines); drawSections(kind); if (focus) host.querySelector(`[data-adder="${kind}:${si}"]`).focus(); };
+  host.querySelectorAll("[data-add]").forEach(b => b.onclick = () => add(+b.dataset.add));
+  host.querySelectorAll("[data-adder]").forEach(inp => {
+    const si = +inp.dataset.adder.split(":")[1];
+    inp.addEventListener("keydown", e => { if (e.key === "Enter" && (kind === "ing" || e.metaKey || e.ctrlKey)){ e.preventDefault(); add(si); } });
+    if (kind === "ing") inp.addEventListener("paste", e => { const t = e.clipboardData?.getData("text") || ""; if (t.includes("\n")){ e.preventDefault(); inp.value = t; add(si); } });
+  });
+}
+async function shrink(file){
+  try {
+    const bmp = await createImageBitmap(file); const max = 1400; const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width*s); c.height = Math.round(bmp.height*s); c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(res => c.toBlob(b => res(b || file), "image/jpeg", .85));
+  } catch { return file; }
+}
+
+/* ---------- import ---------- */
+let importCtl = null;
+function renderImport(){
+  if (!S.canWrite){ renderEditor(null); return; }
+  view.innerHTML = `
+  <section class="wrap editor">
+    <div><span class="label">Import</span><h1 style="font-size:clamp(28px,4vw,40px);margin-top:6px">Save a recipe from <span class="it">any website</span></h1>
+      <p class="muted" style="max-width:60ch">Claude reads the recipe and fills in the ingredients and steps for you, without the ads and life story. It can't open websites by itself, so give it the page text or a few screenshots.</p></div>
+    <div class="steps-how">
+      <div><b>1</b>Paste the recipe link below and open the page.</div>
+      <div><b>2</b>Select all on the page (Ctrl/⌘ + A), copy, and paste it in the big box. On a phone, screenshots work too.</div>
+      <div><b>3</b>Check what Claude found, then save it to your box.</div>
+    </div>
+    <section class="panel import-box">
+      <label class="field"><span>Recipe link</span><div class="row" style="flex-wrap:nowrap"><input id="im-url" type="url" placeholder="https://tastesbetterfromscratch.com/chinese-chow-mein/"><a class="btn quiet" id="im-open" target="_blank" rel="noopener" href="#" aria-disabled="true">Open page</a></div></label>
+      <label class="field"><span>Page text</span><textarea id="im-text" rows="9" placeholder="Paste the copied page here. It's fine if it includes ads, comments and menus."></textarea></label>
+      <div class="field"><span>Or add screenshots of the recipe</span><div class="row"><label class="btn quiet sm" for="im-img">Choose screenshots</label><input id="im-img" type="file" accept="image/*" multiple hidden><span id="im-imgs" class="muted"></span></div></div>
+      <div id="im-msg" hidden></div>
+      <div class="row"><button class="btn" id="im-go">Read recipe</button><button class="btn quiet" id="im-stop" hidden>Stop</button><a class="btn ghost" href="#new">Type it in myself instead</a></div>
+    </section>
+  </section>`;
+  const url = $("#im-url"), open = $("#im-open"), msg = $("#im-msg");
+  url.oninput = () => { const ok = /^https?:\/\/\S+\.\S+/.test(url.value.trim()); open.href = ok ? url.value.trim() : "#"; open.setAttribute("aria-disabled", String(!ok)); };
+  open.onclick = e => { if (open.getAttribute("href") === "#") { e.preventDefault(); url.focus(); } };
+  let files = [];
+  $("#im-img").onchange = e => { files = [...e.target.files]; $("#im-imgs").textContent = files.length ? `${files.length} screenshot${files.length>1?"s":""} ready` : ""; };
+  const say = (t, err) => { msg.hidden = false; msg.className = "msg" + (err ? " err" : ""); msg.textContent = t; };
+  $("#im-stop").onclick = () => importCtl?.abort();
+  $("#im-go").onclick = async () => {
+    const text = $("#im-text").value.trim(), src = url.value.trim();
+    if (!S.sample){ say("Importing needs Claude, which isn't available in this view. You can still type the recipe in.", true); return; }
+    if (!text && !files.length){ say("Paste the page text or add a screenshot first. Claude can't open the link by itself.", true); $("#im-text").focus(); return; }
+    let imgs = [];
+    if (files.length){
+      const lim = await S.sample.limits().catch(() => null);
+      if (!lim?.images){ say("Screenshots aren't supported here. Paste the page text instead.", true); return; }
+      imgs = files.slice(0, lim.images.maxCount);
+    }
+    const cats = [...new Set([...CATS, ...S.recipes.map(r=>r.category).filter(Boolean)])];
+    const prompt = `You turn a recipe web page into structured data for a personal recipe app.
+Use ONLY what is in the provided page text${imgs.length ? " and screenshots" : ""}. Ignore ads, navigation, comments, nutrition facts and the author's story. Never invent ingredients or steps. Keep the recipe's own wording and language. If quantities are given in two systems, keep both as written.
+Reply with only one JSON object of this shape:
+{"title": string, "category": one of ${JSON.stringify(cats)} (pick the best fit; use "Dinner" for main dishes), "servings": string (e.g. "4 servings" or ""), "time": string (total time, e.g. "35 min", or ""),
+ "ingredients": [{"section": string ("" if none), "items": [string, ...]}],
+ "steps": [{"section": string ("" if none), "items": [string, ...]}],
+ "notes": [string, ...]}
+If there is no recipe in the material, reply {"error": "short reason"}.
+Source link: ${src || "(none)"}
+
+PAGE TEXT:
+${text.slice(0, 60000) || "(see screenshots)"}`;
+    importCtl = new AbortController();
+    $("#im-go").disabled = true; $("#im-stop").hidden = false; say("Reading the recipe… this usually takes 20–60 seconds.");
+    try {
+      const j = await S.sample.json(prompt, {signal: importCtl.signal, ...(imgs.length ? {images: imgs} : {})});
+      if (!j || j.error || !j.title){ say(j?.error ? `Claude couldn't find a recipe: ${j.error}` : "Claude couldn't find a recipe in that text. Try copying the whole page again.", true); return; }
+      const arr = v => Array.isArray(v) ? v : [];
+      const secs = v => arr(v).map(s => ({section: String(s?.section||""), items: arr(s?.items).map(String)})).filter(s => s.items.length);
+      renderEditor(null, {title: String(j.title), category: String(j.category || "Dinner"), servings: String(j.servings||""), time: String(j.time||""), source: src,
+        ingredients: secs(j.ingredients), steps: secs(j.steps), notes: arr(j.notes).map(String)});
+      toast("Recipe found. Check it over, then save.");
+    } catch(e){
+      const c = e?.code;
+      if (c === "cancelled") say("Stopped.");
+      else if (c === "not_granted" || c === "sampling_disabled") say("Claude isn't allowed for this page, so importing is off. You can still type recipes in.", true);
+      else if (c === "rate_limited") say("Claude is busy for you right now. Wait a minute and try again.", true);
+      else if (c === "prompt_too_large") say("That page is too long. Copy just the recipe part and try again.", true);
+      else if (c === "invalid_json") say("Claude's answer came back garbled. Press Read recipe to try again.", true);
+      else say("Something went wrong while reading the recipe. Try again.", true);
+    } finally { $("#im-go") && ($("#im-go").disabled = false); $("#im-stop") && ($("#im-stop").hidden = true); }
+  };
+}
+
+/* ---------- meal prep ---------- */
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+function mondayOf(d){ const x = new Date(d); x.setHours(0,0,0,0); const k = (x.getDay()+6)%7; x.setDate(x.getDate()-k); return x; }
+function iso(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function weekKey(){ return S.planWeek || (S.planWeek = iso(mondayOf(new Date()))); }
+function planOf(k = weekKey()){ return S.plans[k] || {days:{}, checked:{}, extras:[]}; }
+function ensurePlan(){
+  const k = weekKey();
+  if (!S.db || S.planSubKey === k) return;
+  S.planUnsub?.(); S.planSubKey = k;
+  S.planUnsub = S.db.collection("plans").doc(k).onSnapshot(snap => { S.plans[k] = snap.exists ? {days:{}, checked:{}, extras:[], ...snap.data()} : {days:{}, checked:{}, extras:[]}; if (currentRoute().name === "prep" && !cook.open) renderPrep(); }, () => {});
+}
+let planWriting = Promise.resolve();
+function savePlan(mut){
+  const k = weekKey(); const p = JSON.parse(JSON.stringify(planOf(k))); mut(p); S.plans[k] = p;
+  if (currentRoute().name === "prep") renderPrep();
+  if (!S.db || !S.canWrite) return;
+  planWriting = planWriting.then(() => S.db.collection("plans").doc(k).set({days:p.days, checked:p.checked, extras:p.extras, updatedAt:new Date().toISOString()})).catch(() => toast("Couldn't save your plan. Try again."));
+}
+function plannedBatches(p){
+  const m = new Map();
+  Object.values(p.days||{}).flat().forEach(e => { const r = byId(e.id); if (!r) return; const b = m.get(r.id) || {r, k:0, days:0}; b.k += e.k || 1; b.days++; m.set(r.id, b); });
+  return [...m.values()];
+}
+function shoppingList(batches){
+  // merge lines with the same wording after the amount; otherwise keep per-recipe
+  const merged = new Map();
+  batches.forEach(({r, k}) => allIngredients(r).forEach(line => {
+    const sc = scaleLine(line, k);
+    const name = (sc.qty != null ? sc.rest : line).trim().replace(/\s+/g," ");
+    const key = name.toLowerCase();
+    const cur = merged.get(key) || {name, qty: 0, hasQty: sc.qty != null, from: new Set(), raw: []};
+    if (sc.qty != null && cur.hasQty) cur.qty += sc.qty; else if (sc.qty == null) cur.hasQty = false;
+    cur.from.add(r.title); cur.raw.push(line); merged.set(key, cur);
+  }));
+  return [...merged.values()].map(x => ({key: x.name.toLowerCase(), text: x.hasQty && x.qty ? `${fmtNum(x.qty)} ${x.name}`.replace(/\s+/," ") : x.name, from: [...x.from]}));
+}
+function renderPrep(){
+  const k = weekKey(), p = planOf(k);
+  const start = new Date(k + "T00:00:00"), end = new Date(start); end.setDate(end.getDate()+6);
+  const fmt = d => d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  const batches = plannedBatches(p);
+  const meals = Object.values(p.days||{}).flat().filter(e => byId(e.id)).length;
+  const list = shoppingList(batches);
+  const left = list.filter(i => !p.checked?.[i.key]).length + (p.extras||[]).filter(x => !x.done).length;
+  const todayIso = iso(new Date());
+  view.innerHTML = `
+  <section class="wrap prep-hero">
+    <div><span class="label">Weekly meal prep</span><h1 style="margin-top:8px">Cook once, <span class="it">eat all week.</span></h1>
+      <p class="muted" style="max-width:52ch">Plan the week's meals, get one shopping list scaled to your portions, then cook every batch in a single prep session.</p>
+      <div class="weeknav"><button class="iconbtn" id="wprev" aria-label="Previous week">‹</button><b style="font-family:var(--display);font-size:18px">${fmt(start)} – ${fmt(end)}</b><button class="iconbtn" id="wnext" aria-label="Next week">›</button>${k !== iso(mondayOf(new Date())) ? `<button class="btn sm quiet" id="wnow">This week</button>` : ""}</div></div>
+    <div class="weekcard"><span class="label">This week's prep</span>
+      <div><span class="muted">Meals planned</span><b>${meals}</b></div><div><span class="muted">Items to buy</span><b>${left}</b></div>
+      <div style="grid-column:1/-1" class="row">${batches.length ? `<button class="btn" id="prepgo">Start prep session</button>` : `<span class="muted">Add meals to the days below to get started.</span>`}${meals && S.canWrite ? `<button class="btn sm ghost" id="clearwk">Clear week</button>` : ""}</div></div>
+  </section>
+  <section class="wrap"><div class="days">
+    ${DAYS.map((d, i) => { const date = new Date(start); date.setDate(date.getDate()+i); const es = (p.days?.[d]||[]);
+      return `<div class="day ${iso(date)===todayIso?"today":""}"><h3>${d} <span>${date.getDate()}</span></h3>
+      ${es.map((e, j) => { const r = byId(e.id); if (!r) return ""; return `<div class="meal"><a href="#r-${esc(r.id)}">${esc(r.title)}</a><div class="row">
+        <select data-portion="${d}:${j}" aria-label="Batch size" ${S.canWrite?"":"disabled"}>${[.5,1,2,3,4].map(x => `<option value="${x}" ${x===(e.k||1)?"selected":""}>${x===.5?"½":x}× batch</option>`).join("")}</select>
+        ${S.canWrite ? `<button class="x" data-rmmeal="${d}:${j}" aria-label="Remove ${esc(r.title)}">✕</button>` : ""}</div></div>`; }).join("")}
+      ${S.canWrite ? `<button class="addmeal" data-addday="${d}">+ Add meal</button>` : ""}</div>`; }).join("")}
+  </div></section>
+  <section class="wrap prep-cols">
+    <div class="panel"><div class="row" style="justify-content:space-between"><h2>Shopping list</h2>${Object.keys(p.checked||{}).length ? `<button class="btn sm quiet" id="uncheck">Uncheck all</button>` : ""}</div>
+      ${list.length ? `${S.pantry ? `<p class="muted" style="font-size:13px;margin:0 0 6px">Items marked <span class="have">in pantry</span> match your home inventory, so check before you buy.</p>` : ""}<ul class="checks">${[...list].sort((a,b)=> (pantryHas(a.key)?1:0)-(pantryHas(b.key)?1:0)).map(i => { const h = pantryHas(i.key), c = cartHas(i.key); return `<li data-shop="${esc(i.key)}" class="${p.checked?.[i.key]?"done":""}"><span class="box"></span><span class="txt">${esc(i.text)} ${h ? `<span class="have">in pantry</span>` : ""}${c ? `<span class="have cart">in cart</span>` : ""}<br><span class="from">${esc(i.from.join(" · "))}</span></span></li>`; }).join("")}</ul>` : `<p class="muted">Your list fills in as you plan meals. Amounts add up across recipes and batch sizes.</p>`}
+      <h4 class="label" style="margin:18px 0 6px">Also buy</h4>
+      <ul class="checks">${(p.extras||[]).map((x,i) => `<li data-extra="${i}" class="${x.done?"done":""}"><span class="box"></span><span class="txt">${esc(x.text)}</span>${S.canWrite?`<button class="x" data-rmextra="${i}" style="margin-left:auto;border:0;background:none;color:var(--muted)" aria-label="Remove">✕</button>`:""}</li>`).join("")}</ul>
+      ${S.canWrite ? `<form class="adder" id="extraf" style="margin-top:8px"><input id="extra" placeholder="e.g. meal prep containers, coffee"><button class="btn sm">Add</button></form>` : ""}
+    </div>
+    <div class="panel"><h2>Batches to cook</h2>
+      ${batches.length ? batches.map(b => `<div class="batch"><div style="min-width:0"><a href="#r-${esc(b.r.id)}">${esc(b.r.title)}</a><div class="muted" style="font-size:13px">${b.days} day${b.days>1?"s":""} · ${stepCount(b.r)} steps${b.r.servings ? ` · base recipe makes ${esc(b.r.servings)}` : ""}</div></div><span class="pill">${fmtNum(b.k)}× batch</span></div>`).join("")
+        : `<p class="muted">Each recipe you plan shows up once here with its total batch size, so you know how much to cook on prep day.</p>`}
+    </div>
+  </section>`;
+  const shift = n => { const d = new Date(k + "T00:00:00"); d.setDate(d.getDate() + 7*n); S.planWeek = iso(d); ensurePlan(); renderPrep(); };
+  $("#wprev").onclick = () => shift(-1); $("#wnext").onclick = () => shift(1);
+  $("#wnow")?.addEventListener("click", () => { S.planWeek = iso(mondayOf(new Date())); ensurePlan(); renderPrep(); });
+  $("#prepgo")?.addEventListener("click", () => { const km = {}; batches.forEach(b => km[b.r.id] = b.k); openCook(batches.map(b=>b.r), 1, km); });
+  $("#clearwk")?.addEventListener("click", e => { const b = e.target; if (b.dataset.sure){ savePlan(p => { p.days = {}; p.checked = {}; }); } else { b.dataset.sure = "1"; b.textContent = "Tap again to clear"; } });
+  $("#uncheck")?.addEventListener("click", () => savePlan(p => p.checked = {}));
+  view.querySelectorAll("[data-addday]").forEach(b => b.onclick = () => openRecipePicker(b.dataset.addday));
+  view.querySelectorAll("[data-rmmeal]").forEach(b => b.onclick = () => { const [d,j] = b.dataset.rmmeal.split(":"); savePlan(p => p.days[d].splice(+j,1)); });
+  view.querySelectorAll("[data-portion]").forEach(s => s.onchange = () => { const [d,j] = s.dataset.portion.split(":"); savePlan(p => p.days[d][+j].k = +s.value); });
+  view.querySelectorAll("[data-shop]").forEach(li => li.onclick = () => { if (!S.canWrite) return; const key = li.dataset.shop; savePlan(p => { p.checked = p.checked || {}; if (p.checked[key]) delete p.checked[key]; else p.checked[key] = true; }); });
+  view.querySelectorAll("[data-extra]").forEach(li => li.onclick = e => { if (!S.canWrite || e.target.closest("[data-rmextra]")) return; savePlan(p => p.extras[+li.dataset.extra].done = !p.extras[+li.dataset.extra].done); });
+  view.querySelectorAll("[data-rmextra]").forEach(b => b.onclick = () => savePlan(p => p.extras.splice(+b.dataset.rmextra,1)));
+  $("#extraf")?.addEventListener("submit", e => { e.preventDefault(); const v = $("#extra").value.trim(); if (!v) return; savePlan(p => { p.extras = p.extras || []; p.extras.push({text:v, done:false}); }); setTimeout(()=>$("#extra")?.focus(), 0); });
+}
+function modal(title, inner){
+  const sc = document.createElement("div"); sc.className = "scrim";
+  sc.innerHTML = `<div class="modal" role="dialog" aria-label="${esc(title)}"><header><h2 style="font-size:22px">${title}</h2><button class="iconbtn" data-close aria-label="Close">${ICON.x}</button></header>${inner}</div>`;
+  document.body.append(sc);
+  const close = () => sc.remove();
+  sc.addEventListener("click", e => { if (e.target === sc || e.target.closest("[data-close]")) close(); });
+  document.addEventListener("keydown", function k(e){ if (e.key === "Escape"){ close(); document.removeEventListener("keydown", k); } });
+  return {el: sc, close};
+}
+function openRecipePicker(day){
+  const m = modal(`Add a meal on <span class="it">${day}</span>`, `<div style="padding:0 20px 10px"><input id="pk-q" type="search" placeholder="Search recipes"></div><div class="list" id="pk-list"></div>`);
+  const draw = () => { const q = $("#pk-q", m.el).value.toLowerCase(); const rs = S.recipes.filter(r => r.title.toLowerCase().includes(q));
+    $("#pk-list", m.el).innerHTML = rs.length ? rs.map(r => `<button class="pick" data-pick="${esc(r.id)}">${thumb(r)}<span><b>${esc(r.title)}</b><br><span class="muted" style="font-size:13px">${esc(r.category||"")}</span></span></button>`).join("") : `<p class="muted" style="padding:8px">No recipes match.</p>`;
+    m.el.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { savePlan(p => { p.days = p.days || {}; (p.days[day] = p.days[day] || []).push({id: b.dataset.pick, k: 1}); }); m.close(); }); };
+  $("#pk-q", m.el).oninput = draw; draw(); setTimeout(() => $("#pk-q", m.el)?.focus(), 30);
+}
+function openDayPicker(r){
+  if (!S.canWrite){ toast("Only the owner can change the meal plan."); return; }
+  ensurePlan();
+  const m = modal(`Plan <span class="it">${esc(r.title)}</span>`, `<div class="list" style="padding:0 20px 20px"><p class="muted" style="margin-top:0">Pick the days for this week.</p><div class="row">${DAYS.map(d => `<button class="btn quiet" data-day="${d}">${d}</button>`).join("")}</div><div class="row" style="margin-top:16px"><button class="btn" id="dp-done">Done</button></div></div>`);
+  const chosen = new Set();
+  m.el.querySelectorAll("[data-day]").forEach(b => b.onclick = () => { const d = b.dataset.day; chosen.has(d) ? chosen.delete(d) : chosen.add(d); b.className = chosen.has(d) ? "btn" : "btn quiet"; });
+  $("#dp-done", m.el).onclick = () => { if (chosen.size){ S.planWeek = iso(mondayOf(new Date())); savePlan(p => { p.days = p.days || {}; chosen.forEach(d => (p.days[d] = p.days[d] || []).push({id:r.id, k:1})); }); toast(`Added to ${chosen.size} day${chosen.size>1?"s":""}`); } m.close(); };
+}
+
+/* ---------- pantry ---------- */
+const STOP = new Set("and or the of with for from a an de la el los las y con en sin to taste large small medium fresh dried ground whole chopped minced diced sliced optional cup cups tbsp tsp oz lb lbs can cans jar jars bag bags box boxes pack packets packet many possibly check if full is seen about".split(" "));
+const AMBIG = new Set("sauce milk powder juice wine cheese cream beans paste brown seasoning mix drink container sausage sausages flour sugar".split(" "));
+const ES = {sal:"salt",ajo:"garlic",ajos:"garlic",cebolla:"onion",arroz:"rice",aceite:"oil",pimienta:"pepper",azucar:"sugar","azúcar":"sugar",huevo:"egg",huevos:"eggs",vinagre:"vinegar",laurel:"bay leaves",canela:"cinnamon",comino:"cumin",cominos:"cumin",clavos:"cloves","orégano":"oregano",oregano:"oregano",tomate:"tomato",tomates:"tomatoes",mantequilla:"butter",harina:"flour",agua:"water",cilantro:"cilantro",tortillas:"tortillas",leche:"milk",papas:"potatoes"};
+function words(text){ return String(text).toLowerCase().replace(/[’']s\b/g,"").replace(/\([^)]*\)/g," "); }
+function phrases(text, full){
+  const out = [];
+  words(text).split(/,|\band\b|\bor\b|\//).forEach(x => { const ws = x.replace(/[^a-záéíóúñü\s-]/g," ").split(/\s+/).filter(w => w.length > 2 && !STOP.has(w)); if (!ws.length) return;
+    if (full){ out.push(ws.join(" ")); return; }
+    out.push(ws.slice(-2).join(" ")); const last = ws[ws.length-1]; if (!AMBIG.has(last)) out.push(last); });
+  return out;
+}
+function pantryIndex(){
+  if (S.pantryKeys) return S.pantryKeys;
+  const keys = new Set(), cart = new Set(), miss = new Set();
+  (S.pantry?.sections||[]).forEach(sec => { if (/appliance|cookware/i.test(sec.name)) return; (sec.items||[]).forEach(it => phrases(it.text).forEach(k => keys.add(k))); });
+  (S.pantry?.cart||[]).forEach(it => phrases(it.text).forEach(k => cart.add(k)));
+  (S.pantry?.missing||[]).forEach(it => phrases(it.text, true).forEach(k => miss.add(k.replace(/\s*in cart$/,""))));
+  return S.pantryKeys = {keys:[...keys], cart:[...cart], miss:[...miss]};
+}
+function norm(line){
+  let l = " " + words(line).replace(/[^a-záéíóúñü\s]/g," ").replace(/\s+/g," ") + " ";
+  const extra = l.trim().split(" ").map(w => ES[w]).filter(Boolean);
+  return extra.length ? l + extra.join(" ") + " " : l;
+}
+function matchAny(line, keys){
+  const l = norm(line);
+  return keys.some(k => l.includes(" " + k + " ") || l.includes(" " + k + "s ") || (k.endsWith("s") && l.includes(" " + k.slice(0,-1) + " ")));
+}
+function pantryHas(line){ if (!S.pantry) return false; const I = pantryIndex(); return matchAny(line, I.keys) && !matchAny(line, I.miss) && !matchAny(line, I.cart); }
+function cartHas(line){ return !!S.pantry && matchAny(line, pantryIndex().cart); }
+function savePantry(mut){
+  const p = JSON.parse(JSON.stringify(S.pantry || {sections:[], missing:[], cart:[]})); mut(p); S.pantry = p; S.pantryKeys = null; renderPantry();
+  if (!S.db || !S.canWrite) return;
+  planWriting = planWriting.then(() => S.db.doc("pantry/home").set({...p, updatedAt: new Date().toISOString()})).catch(() => toast("Couldn't save the pantry. Try again."));
+}
+function renderPantry(){
+  const P = S.pantry;
+  if (!P){ view.innerHTML = `<section class="wrap" style="padding-block:40px"><div class="empty"><h3>${S.loaded ? "No pantry inventory yet" : "Opening your pantry…"}</h3><p class="muted">Keep track of what's in your pantry, fridge and freezer, and the shopping list will flag what you already have.</p>${S.canWrite && S.loaded ? `<div class="row">${SEED.pantry ? `<button class="btn" id="pseed">Load my inventory</button>` : ""}<button class="btn ghost" id="pstart">Start an empty pantry</button></div>` : ""}</div></section>`;
+    $("#pseed")?.addEventListener("click", () => savePantry(p => Object.assign(p, JSON.parse(JSON.stringify(SEED.pantry)))));
+    $("#pstart")?.addEventListener("click", () => savePantry(p => { p.sections = ["Pantry","Fridge","Freezer","Spice rack"].map(n => ({name:n, items:[]})); })); return; }
+  const total = (P.sections||[]).reduce((n,s)=> n + (s.items||[]).length, 0);
+  const low = (P.sections||[]).flatMap(s => (s.items||[]).filter(i => i.low).map(i => i.text));
+  const sugg = S.recipes.map(r => { const ings = allIngredients(r); if (ings.length < 2) return null; const have = ings.filter(pantryHas).length; return {r, have, n: ings.length, f: have/ings.length}; }).filter(Boolean).sort((a,b)=> b.f - a.f || b.have - a.have).slice(0,6);
+  const W = S.canWrite;
+  const listCard = (title, key, hint, extra="") => `<section class="panel"><h2>${title}</h2><p class="muted" style="font-size:13px;margin:0 0 6px">${hint}</p>
+    ${(P[key]||[]).map((it,i) => `<div class="pitem"><span class="t">${esc(it.text)}</span>${W ? `${key==="cart" ? `<button data-gotit="${i}">Bought</button>` : ""}<button data-rmlist="${key}:${i}" aria-label="Remove">✕</button>` : ""}</div>`).join("") || `<p class="muted">Nothing here.</p>`}
+    ${W ? `<form class="adder" data-addlist="${key}" style="margin-top:8px"><input placeholder="Add an item"><button class="btn sm">Add</button></form>` : ""}${extra}</section>`;
+  view.innerHTML = `
+  <section class="wrap prep-hero">
+    <div><span class="label">Home inventory</span><h1 style="margin-top:8px">What's in the <span class="it">kitchen.</span></h1>
+      <p class="muted" style="max-width:56ch">Everything in your pantry, fridge and freezer. The meal prep shopping list marks what you already have, so you only buy what's missing.</p></div>
+    <div class="weekcard"><span class="label">At a glance</span>
+      <div><span class="muted">Items on hand</span><b>${total}</b></div><div><span class="muted">Running low</span><b>${low.length}</b></div>
+      <div><span class="muted">Not found</span><b>${(P.missing||[]).length}</b></div><div><span class="muted">In Walmart cart</span><b>${(P.cart||[]).length}</b></div></div>
+  </section>
+  ${sugg.length ? `<section class="wrap"><div class="section-head"><h2>You can almost make…</h2><span class="muted" style="font-size:13px">Based on ingredients that match your inventory</span></div>
+    <div class="suggest">${sugg.map(x => `<a class="sug" href="#r-${esc(x.r.id)}">${thumb(x.r)}<div style="min-width:0;flex:1"><b style="font-family:var(--display)">${esc(x.r.title)}</b><div class="muted" style="font-size:13px">${x.have} of ${x.n} ingredients on hand</div><div class="meter"><i style="width:${Math.round(x.f*100)}%"></i></div></div></a>`).join("")}</div></section>` : ""}
+  <section class="wrap" style="padding-bottom:60px">
+    <div class="section-head"><h2>Inventory</h2><span class="row"><input id="pq" type="search" placeholder="Find an item" value="${esc(S.pq||"")}" style="width:220px" aria-label="Find a pantry item">${W ? `<button class="btn sm ghost" id="addsec">+ Add area</button>` : ""}</span></div>
+    <div class="pantry-grid">
+      ${(P.sections||[]).map((sec, si) => { const q = (S.pq||"").toLowerCase(); const items = (sec.items||[]).map((it,i)=>({it,i})).filter(x => !q || x.it.text.toLowerCase().includes(q)); if (q && !items.length) return "";
+        return `<section class="panel"><h2 style="font-size:20px">${esc(sec.name)}</h2><span class="muted" style="font-size:13px">${(sec.items||[]).length} items</span>
+        <div style="margin-top:8px">${items.map(({it,i}) => `<div class="pitem ${it.low?"low":""}"><span class="t">${esc(it.text)}</span>${W ? `<button data-low="${si}:${i}">${it.low ? "Restocked" : "Low"}</button><button data-rmitem="${si}:${i}" aria-label="Remove ${esc(it.text)}">✕</button>` : ""}</div>`).join("")}</div>
+        ${W ? `<form class="adder" data-additem="${si}" style="margin-top:8px"><input placeholder="Add to ${esc(sec.name)}"><button class="btn sm">Add</button></form>` : ""}</section>`; }).join("")}
+      ${listCard("Not found", "missing", "Things you looked for and don't have. Add them to a shopping list when you need them.")}
+      ${listCard("Walmart cart", "cart", "Already in your online cart. Tap Bought when it arrives to move it into the pantry.")}
+      ${low.length ? `<section class="panel"><h2>Running low</h2><p class="muted" style="font-size:13px;margin:0 0 6px">Restock these on your next trip.</p>${low.map(t => `<div class="pitem"><span class="t">${esc(t)}</span></div>`).join("")}</section>` : ""}
+    </div>
+  </section>`;
+  const pq = $("#pq"); pq.oninput = () => { S.pq = pq.value; const pos = pq.selectionStart; renderPantry(); const n = $("#pq"); n.focus(); n.setSelectionRange(pos,pos); };
+  $("#addsec")?.addEventListener("click", () => savePantry(p => p.sections.push({name:"New area", items:[]})));
+  view.querySelectorAll("[data-low]").forEach(b => b.onclick = () => { const [si,i] = b.dataset.low.split(":").map(Number); savePantry(p => p.sections[si].items[i].low = !p.sections[si].items[i].low); });
+  view.querySelectorAll("[data-rmitem]").forEach(b => b.onclick = () => { const [si,i] = b.dataset.rmitem.split(":").map(Number); savePantry(p => p.sections[si].items.splice(i,1)); });
+  view.querySelectorAll("[data-additem]").forEach(f => f.onsubmit = e => { e.preventDefault(); const v = f.querySelector("input").value.trim(); if (!v) return; const si = +f.dataset.additem; savePantry(p => p.sections[si].items.push({text:v, low:false})); setTimeout(()=> view.querySelector(`[data-additem="${si}"] input`)?.focus(), 0); });
+  view.querySelectorAll("[data-addlist]").forEach(f => f.onsubmit = e => { e.preventDefault(); const v = f.querySelector("input").value.trim(); if (!v) return; const k = f.dataset.addlist; savePantry(p => (p[k] = p[k] || []).push({text:v})); setTimeout(()=> view.querySelector(`[data-addlist="${k}"] input`)?.focus(), 0); });
+  view.querySelectorAll("[data-rmlist]").forEach(b => b.onclick = () => { const [k,i] = b.dataset.rmlist.split(":"); savePantry(p => p[k].splice(+i,1)); });
+  view.querySelectorAll("[data-gotit]").forEach(b => b.onclick = () => { const i = +b.dataset.gotit; savePantry(p => { const it = p.cart.splice(i,1)[0]; let sec = p.sections.find(s => s.name === "Just bought"); if (!sec){ sec = {name:"Just bought", items:[]}; p.sections.unshift(sec); } sec.items.push({text: it.text, low:false}); }); toast("Moved to your pantry"); });
+}
+
+boot();
+})();
+</script>
