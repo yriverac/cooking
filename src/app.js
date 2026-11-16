@@ -1,9 +1,9 @@
 /* ================= state + utils ================= */
 const S = { recipes: [], loaded: false, canWrite: true, db: null, assets: null, sample: null, downloads: null, user: null,
   q: "", filter: "All", serv: {}, inv: null, freezer: null, plans: {}, week: null, planSub: null, kTab: "Pantry", kq: "" };
-const COURSES = ["Drinks","Appetizers","Desserts","Dinner"];
+const COURSES = ["Breakfast","Drinks","Appetizers","Desserts","Dinner"];
 const PROTEINS = ["","Beef","Chicken","Pork","Turkey","Lamb","Beans / vegetarian","Eggs"];
-const TILE = {Drinks:"--t-drinks",Appetizers:"--t-app",Desserts:"--t-dess",Dinner:"--t-dinner"};
+const TILE = {Breakfast:"--t-break",Drinks:"--t-drinks",Appetizers:"--t-app",Desserts:"--t-dess",Dinner:"--t-dinner"};
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const $ = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
@@ -135,7 +135,7 @@ function renderHome(){
   const q = S.q.trim().toLowerCase();
   const cuisines = [...new Set(S.recipes.map(r => r.cuisine).filter(Boolean))].sort();
   const proteins = [...new Set(S.recipes.map(r => r.protein).filter(Boolean))].sort();
-  const F = ["All", ...COURSES.filter(c => S.recipes.some(r => r.category === c)), "Freezer-friendly", ...cuisines, ...proteins, "Favorites", "Needs review"];
+  const F = ["All", ...COURSES, "Freezer-friendly", ...cuisines, ...proteins, "Favorites", "Needs review"];
   const match = r => {
     const f = S.filter;
     if (f === "All") return true; if (f === "Favorites") return r.favorite; if (f === "Needs review") return r.flags.length;

@@ -8,7 +8,7 @@
   --bg:#F7EBEE; --surface:#FFFFFF; --soft:#FBF3F5; --rose:#EBCBD4; --rose-2:#E2B6C3;
   --ink:#3B2330; --muted:#76606C; --line:#EAD4DB; --accent:#8C4760; --accent-ink:#FFFFFF;
   --leaf:#46663A; --leaf-soft:#E4EEDC; --warn:#A8461F; --warn-soft:#FBE6DC; --alert:#B42318; --alert-soft:#FDE4E1;
-  --t-drinks:#F1D3DB; --t-app:#EFDCC9; --t-dess:#F4C9D3; --t-dinner:#DCC6D2; --t-other:#E6D6E4;
+  --t-break:#F3E3C3; --t-drinks:#F1D3DB; --t-app:#EFDCC9; --t-dess:#F4C9D3; --t-dinner:#DCC6D2; --t-other:#E6D6E4;
   --shadow:0 1px 2px rgba(59,35,48,.06),0 8px 24px rgba(59,35,48,.07);
   --display:"Playfair Display",Georgia,"Times New Roman",serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -18,13 +18,13 @@
   --bg:#1C1317; --surface:#271B21; --soft:#2F2128; --rose:#4A3039; --rose-2:#5A3946;
   --ink:#F5E6EB; --muted:#BFA5B1; --line:#3D2A33; --accent:#E59AB3; --accent-ink:#2A141D;
   --leaf:#A9C78F; --leaf-soft:#26321F; --warn:#F0A07E; --warn-soft:#3A2419; --alert:#FF9C8F; --alert-soft:#3D1D1A;
-  --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
+  --t-break:#453A26; --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#1C1317; --surface:#271B21; --soft:#2F2128; --rose:#4A3039; --rose-2:#5A3946;
   --ink:#F5E6EB; --muted:#BFA5B1; --line:#3D2A33; --accent:#E59AB3; --accent-ink:#2A141D;
   --leaf:#A9C78F; --leaf-soft:#26321F; --warn:#F0A07E; --warn-soft:#3A2419; --alert:#FF9C8F; --alert-soft:#3D1D1A;
-  --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
+  --t-break:#453A26; --t-drinks:#4A2D37; --t-app:#46362B; --t-dess:#512C38; --t-dinner:#3C2C36; --t-other:#3A2E3B;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px))}
@@ -556,9 +556,9 @@ function parseRecipeText(text, url){
 /* ================= state + utils ================= */
 const S = { recipes: [], loaded: false, canWrite: true, db: null, assets: null, sample: null, downloads: null, user: null,
   q: "", filter: "All", serv: {}, inv: null, freezer: null, plans: {}, week: null, planSub: null, kTab: "Pantry", kq: "" };
-const COURSES = ["Drinks","Appetizers","Desserts","Dinner"];
+const COURSES = ["Breakfast","Drinks","Appetizers","Desserts","Dinner"];
 const PROTEINS = ["","Beef","Chicken","Pork","Turkey","Lamb","Beans / vegetarian","Eggs"];
-const TILE = {Drinks:"--t-drinks",Appetizers:"--t-app",Desserts:"--t-dess",Dinner:"--t-dinner"};
+const TILE = {Breakfast:"--t-break",Drinks:"--t-drinks",Appetizers:"--t-app",Desserts:"--t-dess",Dinner:"--t-dinner"};
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const $ = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
@@ -690,7 +690,7 @@ function renderHome(){
   const q = S.q.trim().toLowerCase();
   const cuisines = [...new Set(S.recipes.map(r => r.cuisine).filter(Boolean))].sort();
   const proteins = [...new Set(S.recipes.map(r => r.protein).filter(Boolean))].sort();
-  const F = ["All", ...COURSES.filter(c => S.recipes.some(r => r.category === c)), "Freezer-friendly", ...cuisines, ...proteins, "Favorites", "Needs review"];
+  const F = ["All", ...COURSES, "Freezer-friendly", ...cuisines, ...proteins, "Favorites", "Needs review"];
   const match = r => {
     const f = S.filter;
     if (f === "All") return true; if (f === "Favorites") return r.favorite; if (f === "Needs review") return r.flags.length;
@@ -1207,7 +1207,7 @@ function renderImport(){
 Use ONLY the page text${imgs.length ? " and the screenshots" : ""}. Ignore ads, menus, comments, nutrition facts and the author's story. Never invent ingredients or steps. Keep the recipe's wording and language.
 The recipe must have ONE version only: if the page offers spicy/mild or other variants, keep the main version and leave the variants out.
 Reply with only one JSON object:
-{"title": string, "course": "Drinks"|"Appetizers"|"Desserts"|"Dinner", "cuisine": string, "protein": ""|"Beef"|"Chicken"|"Pork"|"Turkey"|"Lamb"|"Fish"|"Shellfish"|"Beans / vegetarian"|"Eggs",
+{"title": string, "course": "Breakfast"|"Drinks"|"Appetizers"|"Desserts"|"Dinner", "cuisine": string, "protein": ""|"Beef"|"Chicken"|"Pork"|"Turkey"|"Lamb"|"Fish"|"Shellfish"|"Beans / vegetarian"|"Eggs",
  "servings": number|null, "servingsUnit": string (e.g. "servings", "cookies"), "prepMin": number|null, "cookMin": number|null,
  "freezer": boolean (true if it freezes well), "fridgeDays": number (how many days leftovers keep in the fridge), "freezerMonths": number (0 if it doesn't freeze),
  "ingredients": [{"section": string, "items": [{"q": number|null, "q2": number|null (upper end of a range), "u": string (unit as written, or ""), "n": string (ingredient and any prep notes)}]}],

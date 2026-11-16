@@ -323,7 +323,7 @@ function renderImport(){
 Use ONLY the page text${imgs.length ? " and the screenshots" : ""}. Ignore ads, menus, comments, nutrition facts and the author's story. Never invent ingredients or steps. Keep the recipe's wording and language.
 The recipe must have ONE version only: if the page offers spicy/mild or other variants, keep the main version and leave the variants out.
 Reply with only one JSON object:
-{"title": string, "course": "Drinks"|"Appetizers"|"Desserts"|"Dinner", "cuisine": string, "protein": ""|"Beef"|"Chicken"|"Pork"|"Turkey"|"Lamb"|"Fish"|"Shellfish"|"Beans / vegetarian"|"Eggs",
+{"title": string, "course": "Breakfast"|"Drinks"|"Appetizers"|"Desserts"|"Dinner", "cuisine": string, "protein": ""|"Beef"|"Chicken"|"Pork"|"Turkey"|"Lamb"|"Fish"|"Shellfish"|"Beans / vegetarian"|"Eggs",
  "servings": number|null, "servingsUnit": string (e.g. "servings", "cookies"), "prepMin": number|null, "cookMin": number|null,
  "freezer": boolean (true if it freezes well), "fridgeDays": number (how many days leftovers keep in the fridge), "freezerMonths": number (0 if it doesn't freeze),
  "ingredients": [{"section": string, "items": [{"q": number|null, "q2": number|null (upper end of a range), "u": string (unit as written, or ""), "n": string (ingredient and any prep notes)}]}],
