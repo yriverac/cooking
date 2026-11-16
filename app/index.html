@@ -159,6 +159,15 @@ ol.steps li.done .n::after{content:" ✓";font-style:normal;font-size:14px}
 .pastezone.busy{color:var(--leaf);border-color:var(--leaf)}
 .pastezone.err{color:var(--alert);border-color:var(--alert)}
 .shots{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cropwrap{position:relative;align-self:center;max-width:100%;touch-action:none;user-select:none;-webkit-user-select:none;line-height:0;overflow:hidden;border-radius:8px}
+.cropwrap img{display:block;max-width:100%;max-height:58vh;width:auto;height:auto}
+.cropbox{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(20,10,15,.55);cursor:move;touch-action:none}
+.cropbox:focus-visible{outline:3px solid var(--accent);outline-offset:0}
+.cropbox i{position:absolute;width:26px;height:26px;border:3px solid #fff;touch-action:none}
+.cropbox i[data-h=nw]{left:-4px;top:-4px;border-right:0;border-bottom:0;cursor:nwse-resize}
+.cropbox i[data-h=ne]{right:-4px;top:-4px;border-left:0;border-bottom:0;cursor:nesw-resize}
+.cropbox i[data-h=sw]{left:-4px;bottom:-4px;border-right:0;border-top:0;cursor:nesw-resize}
+.cropbox i[data-h=se]{right:-4px;bottom:-4px;border-left:0;border-top:0;cursor:nwse-resize}
 .shot{position:relative;margin:0;width:84px;height:84px;border-radius:10px;overflow:hidden;background:var(--soft)}
 .shot img{width:100%;height:100%;object-fit:cover}
 .shot .iconbtn{position:absolute;top:4px;right:4px;width:26px;height:26px}
@@ -740,7 +749,7 @@ function renderRecipe({id}){
   view.innerHTML = `
   <article class="wrap recipe">
     <div class="rhead">
-      <div class="stack" style="gap:8px">${thumb(r)}${S.assets && S.canWrite ? pasteZone("r-paste", r.photoUrl ? "Change photo: copy one, then tap here and paste" : "Add a photo: copy one, then tap here and paste") : ""}</div>
+      <div class="stack" style="gap:8px">${thumb(r)}${S.assets && S.canWrite ? `${photoOf(r) ? `<button type="button" class="btn sm quiet" id="r-crop" style="align-self:flex-start">Crop photo</button>` : ""}${pasteZone("r-paste", photoOf(r) ? "Change photo: copy one, then tap here and paste" : "Add a photo: copy one, then tap here and paste")}` : ""}</div>
       <div class="stack" style="gap:10px">
         <a href="#home" class="label" style="text-decoration:none;color:var(--accent)">← ${esc(r.category || "Recipes")}</a>
         <h1>${esc(r.title)}</h1>
@@ -794,6 +803,7 @@ function renderRecipe({id}){
   $("#cook")?.addEventListener("click", () => openCook(recipeCookItems(r, k), r.title, {r, k}));
   $("#toplan").onclick = () => openPlanAdd(r.id);
   bindPasteZone($("#r-paste"), fs => setRecipePhoto(r.id, fs[0]));
+  $("#r-crop")?.addEventListener("click", async () => { try { setRecipePhoto(r.id, await blobFromUrl(photoOf(r))); } catch { toast("Couldn't open that photo to crop. Paste it again instead."); } });
   $("#fav")?.addEventListener("click", () => write("recipes/" + r.id, {...stripId(r), favorite: !r.favorite}));
   $("#copysrc")?.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(r.source); toast("Link copied. Paste it in a new tab."); }
@@ -932,7 +942,7 @@ function drawEditor(){
       <label class="field"><span>Keeps in fridge (days)</span><input id="f-fd" type="number" inputmode="numeric" min="0" value="${d.fridgeDays ?? ""}"></label>
       <label class="field"><span>Keeps in freezer (months)</span><input id="f-fm" type="number" inputmode="numeric" min="0" value="${d.freezerMonths ?? ""}"></label>
       <div class="field full"><span>Photo</span>
-        <div class="photo-pick">${thumb(d)}<div class="stack" style="gap:6px">${S.assets ? `<div class="row"><label class="btn quiet sm" for="f-photo">Upload photo</label><input id="f-photo" type="file" accept="image/*" hidden>${d.photoUrl ? `<button type="button" class="btn sm ghost" id="rmphoto">Remove</button>` : ""}</div></div>` : `<span class="muted small">Photos need the recipe box owner.</span>`}</div></div>${S.assets ? pasteZone("f-paste", "Copy a photo, then tap here and paste") : ""}</div>
+        <div class="photo-pick">${thumb(d)}<div class="stack" style="gap:6px">${S.assets ? `<div class="row"><label class="btn quiet sm" for="f-photo">Upload photo</label><input id="f-photo" type="file" accept="image/*" hidden>${photoOf(d) ? `<button type="button" class="btn sm quiet" id="cropphoto">Crop photo</button>` : ""}${d.photoUrl ? `<button type="button" class="btn sm ghost" id="rmphoto">Remove</button>` : ""}</div></div>` : `<span class="muted small">Photos need the recipe box owner.</span>`}</div></div>${S.assets ? pasteZone("f-paste", "Copy a photo, then tap here and paste") : ""}</div>
     </section>
     <section class="panel"><h2>Ingredients</h2><p class="muted small" style="margin:4px 0 10px">Amount, unit, then the ingredient. Press Enter to add the next one. Pasting a list adds every line.</p><div id="ingsecs" class="stack" style="gap:10px"></div>
       <button type="button" class="btn sm ghost" id="addIngSec" style="margin-top:10px">+ Add a section (e.g. Frosting)</button></section>
@@ -955,6 +965,7 @@ function drawEditor(){
   $("#f-photo")?.addEventListener("change", e => e.target.files[0] && setPhoto(e.target.files[0]));
   bindPasteZone($("#f-paste"), fs => setPhoto(fs[0]));
   $("#rmphoto")?.addEventListener("click", () => { bind(); d.photoUrl = ""; d.photoId = ""; drawEditor(); });
+  $("#cropphoto")?.addEventListener("click", async () => { bind(); try { setPhoto(await blobFromUrl(photoOf(d))); } catch { $("#saveMsg").textContent = "Couldn't open that photo to crop. Paste it again instead."; } });
   $("#del")?.addEventListener("click", () => {
     $("#dz").innerHTML = `<span>Delete “${esc(d.title)}” for good?</span><button type="button" class="btn sm danger" id="delY">Yes, delete</button><button type="button" class="btn sm quiet" id="delN">Keep it</button>`;
     $("#delN").onclick = drawEditor;
@@ -1033,9 +1044,62 @@ async function shrink(blob, crop){
   return await new Promise(res => c.toBlob(b => res(b || blob), "image/jpeg", .85));
 }
 async function uploadPhoto(file, crop){ const a = await S.assets.upload(await shrink(file, crop)); return {photoId: a.id, photoUrl: a.url}; }
+
+/* ---------- crop dialog: drag to move, corners to resize, pick a shape ---------- */
+function cropDialog(blob){
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(blob);
+    const shapes = [["Whole photo", null], ["Card 4:3", 4/3], ["Square", 1], ["Tall 3:4", 3/4], ["Free", 0]];
+    const m = modal("Crop <span class=\"it\">photo</span>", `
+      <div class="row" role="group" aria-label="Shape" id="cr-shapes">${shapes.map(([n], i) => `<button type="button" class="fbtn" data-shape="${i}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
+      <div class="cropwrap" id="cr-wrap"><img id="cr-img" src="${url}" alt="Photo to crop" draggable="false"><div class="cropbox" id="cr-box" tabindex="0" aria-label="Crop area. Drag to move."><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i></div></div>
+      <p class="muted small" style="margin:0">Drag the box to move it. Drag a corner to resize. The recipe cards show photos as 4:3.</p>
+      <div class="row"><button type="button" class="btn" id="cr-ok">Use photo</button><button type="button" class="btn quiet" id="cr-x">Cancel</button></div>`);
+    const img = $("#cr-img", m.el), boxEl = $("#cr-box", m.el);
+    let W = 0, H = 0, ratio = null, b = {x:0, y:0, w:0, h:0}, done = false;
+    const finish = v => { if (done) return; done = true; URL.revokeObjectURL(url); m.close(); resolve(v); };
+    const draw = () => { Object.assign(boxEl.style, {left: b.x + "px", top: b.y + "px", width: b.w + "px", height: b.h + "px"}); };
+    const fit = r => { // largest centred box with ratio r (pixel ratio w/h); null = whole photo
+      if (!r){ b = {x:0, y:0, w:W, h:H}; return; }
+      let w = W, h = w / r; if (h > H){ h = H; w = h * r; }
+      b = {x:(W - w)/2, y:(H - h)/2, w, h};
+    };
+    const measure = () => { const pw = W; W = img.clientWidth; H = img.clientHeight; if (!pw){ fit(null); } else { const k = W / pw; b = {x:b.x*k, y:b.y*k, w:b.w*k, h:b.h*k}; } draw(); };
+    img.onload = measure; if (img.complete && img.naturalWidth) measure();
+    window.addEventListener("resize", measure);
+    $$("[data-shape]", m.el).forEach(btn => btn.onclick = () => { const s = shapes[+btn.dataset.shape][1];
+      $$("[data-shape]", m.el).forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+      ratio = s === 0 ? 0 : s; if (s !== 0) fit(s); draw(); });
+    let drag = null;
+    const clamp = () => { b.w = Math.max(40, Math.min(b.w, W)); b.h = Math.max(40, Math.min(b.h, H)); b.x = Math.max(0, Math.min(b.x, W - b.w)); b.y = Math.max(0, Math.min(b.y, H - b.h)); };
+    boxEl.addEventListener("pointerdown", e => { e.preventDefault(); boxEl.setPointerCapture(e.pointerId); drag = {h: e.target.dataset.h || "move", x0: e.clientX, y0: e.clientY, b0: {...b}}; });
+    boxEl.addEventListener("pointermove", e => {
+      if (!drag) return; const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0, o = drag.b0;
+      if (drag.h === "move"){ b.x = o.x + dx; b.y = o.y + dy; clamp(); draw(); return; }
+      const left = drag.h.includes("w"), top = drag.h.includes("n");
+      let w = o.w + (left ? -dx : dx), h = o.h + (top ? -dy : dy);
+      const r = ratio || null;
+      if (r){ h = w / r; }
+      // keep the opposite corner fixed and stay inside the photo
+      const ax = left ? o.x + o.w : o.x, ay = top ? o.y + o.h : o.y;
+      const maxW = left ? ax : W - ax, maxH = top ? ay : H - ay;
+      w = Math.max(40, Math.min(w, maxW)); h = Math.max(40, Math.min(h, maxH));
+      if (r){ if (w / r > maxH) w = maxH * r; h = w / r; if (h < 40){ h = 40; w = h * r; } }
+      b = {x: left ? ax - w : ax, y: top ? ay - h : ay, w, h}; draw();
+    });
+    const end = () => { drag = null; };
+    boxEl.addEventListener("pointerup", end); boxEl.addEventListener("pointercancel", end);
+    boxEl.addEventListener("keydown", e => { const st = e.shiftKey ? 20 : 5; const mv = {ArrowLeft:[-st,0], ArrowRight:[st,0], ArrowUp:[0,-st], ArrowDown:[0,st]}[e.key]; if (!mv) return; e.preventDefault(); b.x += mv[0]; b.y += mv[1]; clamp(); draw(); });
+    $("#cr-x", m.el).onclick = () => finish(null);
+    $("#cr-ok", m.el).onclick = () => { window.removeEventListener("resize", measure); finish(W ? [b.x/W, b.y/H, b.w/W, b.h/H] : null); };
+    m.el.addEventListener("click", e => { if (e.target === m.el || e.target.closest("[data-close]")) finish(null); });
+  });
+}
+async function blobFromUrl(u){ const r = await fetch(u); if (!r.ok) throw new Error("fetch"); return await r.blob(); }
 async function setPhoto(file){
+  const box = await cropDialog(file); if (!box) return;
   const msg = $("#saveMsg"); if (msg) msg.textContent = "Uploading photo…";
-  try { Object.assign(draft, await uploadPhoto(file)); drawEditor(); $("#saveMsg").textContent = "Photo added. Save to keep it."; }
+  try { Object.assign(draft, await uploadPhoto(file, box)); drawEditor(); $("#saveMsg").textContent = "Photo added. Save to keep it."; }
   catch { if ($("#saveMsg")) $("#saveMsg").textContent = "That photo couldn't upload. Try a JPG or PNG under 20 MB."; }
 }
 /* copy & paste images: a paste box (long-press then Paste on phones, Cmd/Ctrl+V elsewhere), drag and drop, or paste anywhere on the page */
@@ -1069,8 +1133,9 @@ document.addEventListener("paste", e => {
   else if (r.name === "import" && importShots){ e.preventDefault(); importShots(fs); }
 });
 async function setRecipePhoto(id, file){
-  const r = byId(id); if (!r) return; toast("Uploading photo…");
-  try { const p = await uploadPhoto(file); await write("recipes/" + id, {...stripId(r), ...p}); toast("Photo updated"); }
+  const r = byId(id); if (!r) return;
+  const box = await cropDialog(file); if (!box) return; toast("Uploading photo…");
+  try { const p = await uploadPhoto(file, box); await write("recipes/" + id, {...stripId(r), ...p}); toast("Photo updated"); }
   catch { toast("That photo couldn't upload. Try a JPG or PNG under 20 MB."); }
 }
 
