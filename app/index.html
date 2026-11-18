@@ -874,17 +874,20 @@ function drawCook(){
 const timers = [];
 const alarm = {
   ctx: null, el: null, url: null,
+  /* soft chime: rising C–E–G–C arpeggio, sine tones with a gentle bell overtone and a long fade */
+  notes: [[0, 1046.5], [.32, 1318.5], [.64, 1568], [.96, 2093]],
   wav(){
     if (this.url) return this.url;
-    const rate = 22050, len = Math.round(rate * 1.6), data = new Int16Array(len);
-    // three bright beeps (two tones each), then a short pause; loops seamlessly
-    [[0, .16], [.22, .38], [.44, .60]].forEach(([a, b]) => {
-      for (let i = Math.round(a*rate); i < Math.round(b*rate); i++){
-        const t = i / rate, env = Math.min(1, (t - a) * 200, (b - t) * 200);
-        data[i] = Math.round(0.75 * 32767 * env * (Math.sign(Math.sin(2*Math.PI*988*t)) * .6 + Math.sin(2*Math.PI*1976*t) * .4));
+    const rate = 22050, len = Math.round(rate * 2.6), mix = new Float32Array(len);
+    this.notes.forEach(([at, f]) => {
+      const i0 = Math.round(at * rate), dur = Math.round(1.4 * rate);
+      for (let i = 0; i < dur && i0 + i < len; i++){
+        const t = i / rate, env = Math.min(1, t / .012) * Math.exp(-t * 3.2);
+        mix[i0 + i] += env * (Math.sin(2*Math.PI*f*t) * .78 + Math.sin(2*Math.PI*f*2.0*t) * .14 * Math.exp(-t*6) + Math.sin(2*Math.PI*f*3.0*t) * .05 * Math.exp(-t*9));
       }
     });
-    const buf = new ArrayBuffer(44 + len*2), v = new DataView(buf), w = (o, s) => [...s].forEach((c, i) => v.setUint8(o+i, c.charCodeAt(0)));
+    const data = new Int16Array(len); for (let i = 0; i < len; i++) data[i] = Math.round(Math.max(-1, Math.min(1, mix[i] * .42)) * 32767);
+    const buf = new ArrayBuffer(44 + len*2), v = new DataView(buf), w = (o, x) => [...x].forEach((c, i) => v.setUint8(o+i, c.charCodeAt(0)));
     w(0, "RIFF"); v.setUint32(4, 36 + len*2, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
     v.setUint32(24, rate, true); v.setUint32(28, rate*2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, len*2, true);
     new Int16Array(buf, 44).set(data);
@@ -903,12 +906,12 @@ const alarm = {
   schedule(t){
     this.cancel(t); const c = this.ctx; if (!c || t.paused != null) return;
     const at = c.currentTime + Math.max(0, (t.end - Date.now()) / 1000);
-    const out = c.createGain(); out.gain.value = .5; out.connect(c.destination); t.nodes = out;
-    for (let k = 0; k < 38; k++) [0, .22, .44].forEach(d => {
-      const s = at + k*1.6 + d, o = c.createOscillator(), g = c.createGain();
-      o.type = "square"; o.frequency.value = 988; o.connect(g); g.connect(out);
-      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(1, s + .005); g.gain.setValueAtTime(1, s + .15); g.gain.linearRampToValueAtTime(0, s + .16);
-      o.start(s); o.stop(s + .17);
+    const out = c.createGain(); out.gain.value = .32; out.connect(c.destination); t.nodes = out;
+    for (let k = 0; k < 23; k++) this.notes.forEach(([d, f]) => {
+      const st = at + k*2.6 + d, o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(out);
+      g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(1, st + .012); g.gain.exponentialRampToValueAtTime(0.0001, st + 1.4);
+      o.start(st); o.stop(st + 1.45);
     });
     t.nodesUntil = t.end + 60000;
   },
@@ -920,7 +923,7 @@ const alarm = {
     try { navigator.vibrate?.([400, 200, 400, 200, 400]); } catch {}
   },
   quiet(){ this.ringing = false; if (this.el && !this.el.paused){ this.el.pause(); this.el.currentTime = 0; } },
-  test(){ this.unlock(); if (this.el){ this.el.currentTime = 0; this.el.play().catch(() => toast("Your browser blocked the sound. Tap the page once, then try again.")); setTimeout(() => { if (!timers.some(t => t.ring)) this.quiet(); }, 3200); } }
+  test(){ this.unlock(); if (this.el){ this.el.currentTime = 0; this.el.play().catch(() => toast("Your browser blocked the sound. Tap the page once, then try again.")); setTimeout(() => { if (!timers.some(t => t.ring)) this.quiet(); }, 2700); } }
 };
 function startTimer(mins, label){
   alarm.unlock();
