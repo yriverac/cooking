@@ -254,7 +254,8 @@ body.cooking .timers{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 .timer small{display:block;font-size:11px;opacity:.8;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .timer button{border:0;background:rgba(127,127,127,.25);color:inherit;border-radius:999px;width:34px;height:34px}
 .timer.ring{background:var(--accent);color:var(--accent-ink);animation:pulse 1s infinite}
-@keyframes pulse{50%{transform:scale(1.04)}}
+.timer .stopbtn{width:auto;height:44px;padding:0 22px;font-weight:700;font-size:16px;background:var(--accent-ink);color:var(--accent)}
+@keyframes pulse{50%{box-shadow:0 0 0 8px var(--rose-2)}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:80;max-width:calc(100% - 32px);text-align:center}
 
 /* tablet / kitchen hub */
@@ -865,22 +866,101 @@ function drawCook(){
   body.addEventListener("touchend", e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 60) move(dx < 0 ? 1 : -1); x0 = null; });
 }
 
-/* ================= timers ================= */
-const timers = []; let actx = null;
+/* ================= timers + alarm ================= */
+/* The alarm is made two ways so it still sounds when the browser is strict:
+   1. Web Audio beeps scheduled ahead for the exact end time (plays on time even if the page's clock is throttled).
+   2. A looping <audio> element with a generated alarm sound, unlocked on the tap that starts the timer
+      (more reliable in Safari, and with audioSession "playback" it is not muted by the iPhone silent switch). */
+const timers = [];
+const alarm = {
+  ctx: null, el: null, url: null,
+  wav(){
+    if (this.url) return this.url;
+    const rate = 22050, len = Math.round(rate * 1.6), data = new Int16Array(len);
+    // three bright beeps (two tones each), then a short pause; loops seamlessly
+    [[0, .16], [.22, .38], [.44, .60]].forEach(([a, b]) => {
+      for (let i = Math.round(a*rate); i < Math.round(b*rate); i++){
+        const t = i / rate, env = Math.min(1, (t - a) * 200, (b - t) * 200);
+        data[i] = Math.round(0.75 * 32767 * env * (Math.sign(Math.sin(2*Math.PI*988*t)) * .6 + Math.sin(2*Math.PI*1976*t) * .4));
+      }
+    });
+    const buf = new ArrayBuffer(44 + len*2), v = new DataView(buf), w = (o, s) => [...s].forEach((c, i) => v.setUint8(o+i, c.charCodeAt(0)));
+    w(0, "RIFF"); v.setUint32(4, 36 + len*2, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate*2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, len*2, true);
+    new Int16Array(buf, 44).set(data);
+    return this.url = URL.createObjectURL(new Blob([buf], {type: "audio/wav"}));
+  },
+  /* call from a tap: lets the page play sound later */
+  unlock(){
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
+    try { this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)(); this.ctx.resume?.(); } catch {}
+    try {
+      if (!this.el){ this.el = new Audio(this.wav()); this.el.loop = true; this.el.preload = "auto"; this.el.setAttribute("playsinline", ""); }
+      if (this.el.paused && !this.ringing){ this.el.muted = true; const p = this.el.play(); p?.then(() => { if (!this.ringing){ this.el.pause(); this.el.currentTime = 0; } this.el.muted = false; }).catch(() => { this.el.muted = false; }); }
+    } catch {}
+  },
+  /* schedule ~60 s of beeps at the timer's end time */
+  schedule(t){
+    this.cancel(t); const c = this.ctx; if (!c || t.paused != null) return;
+    const at = c.currentTime + Math.max(0, (t.end - Date.now()) / 1000);
+    const out = c.createGain(); out.gain.value = .5; out.connect(c.destination); t.nodes = out;
+    for (let k = 0; k < 38; k++) [0, .22, .44].forEach(d => {
+      const s = at + k*1.6 + d, o = c.createOscillator(), g = c.createGain();
+      o.type = "square"; o.frequency.value = 988; o.connect(g); g.connect(out);
+      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(1, s + .005); g.gain.setValueAtTime(1, s + .15); g.gain.linearRampToValueAtTime(0, s + .16);
+      o.start(s); o.stop(s + .17);
+    });
+    t.nodesUntil = t.end + 60000;
+  },
+  cancel(t){ if (t.nodes){ try { t.nodes.disconnect(); } catch {} t.nodes = null; } },
+  ring(){
+    this.ringing = true;
+    try { this.ctx?.resume?.(); } catch {}
+    if (this.el){ this.el.muted = false; this.el.volume = 1; if (this.el.paused) this.el.play().catch(() => {}); }
+    try { navigator.vibrate?.([400, 200, 400, 200, 400]); } catch {}
+  },
+  quiet(){ this.ringing = false; if (this.el && !this.el.paused){ this.el.pause(); this.el.currentTime = 0; } },
+  test(){ this.unlock(); if (this.el){ this.el.currentTime = 0; this.el.play().catch(() => toast("Your browser blocked the sound. Tap the page once, then try again.")); setTimeout(() => { if (!timers.some(t => t.ring)) this.quiet(); }, 3200); } }
+};
 function startTimer(mins, label){
-  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume?.(); } catch {}
-  timers.push({id: uid(), end: Date.now() + mins*60000, label, ring: false, paused: null}); toast(`Timer set: ${fmtMins(mins)}`); drawTimers();
+  alarm.unlock();
+  const t = {id: uid(), end: Date.now() + mins*60000, label, ring: false, paused: null};
+  timers.push(t); alarm.schedule(t);
+  toast(`Timer set: ${fmtMins(mins)}. Keep your volume up.`); drawTimers();
 }
-function beep(){ if (!actx) return; try { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(.35, actx.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + .5); o.start(); o.stop(actx.currentTime + .55); } catch {} }
+function stopTimer(t){ alarm.cancel(t); const i = timers.indexOf(t); if (i >= 0) timers.splice(i, 1); if (!timers.some(x => x.ring)) alarm.quiet(); }
+let timerSig = "";
+function timeLeft(t){ const left = t.paused != null ? t.paused : Math.max(0, t.end - Date.now()); const h = Math.floor(left/36e5), m = Math.floor(left/6e4)%60, s = Math.floor(left/1e3)%60;
+  return `${h ? h + ":" + String(m).padStart(2,"0") : m}:${String(s).padStart(2,"0")}`; }
 function drawTimers(){
   const host = $("#timers");
-  host.innerHTML = timers.map(t => { const left = t.paused != null ? t.paused : Math.max(0, t.end - Date.now()); const h = Math.floor(left/36e5), m = Math.floor(left/6e4)%60, s = Math.floor(left/1e3)%60;
-    return `<div class="timer ${t.ring ? "ring" : ""}" data-id="${t.id}"><div><b>${t.ring ? "Done!" : `${h ? h + ":" + String(m).padStart(2,"0") : m}:${String(s).padStart(2,"0")}`}</b><small>${esc(t.label)}</small></div>
-      ${t.ring ? "" : `<button data-act="p" aria-label="${t.paused != null ? "Resume" : "Pause"} timer">${t.paused != null ? "▶" : "❚❚"}</button>`}<button data-act="x" aria-label="Dismiss timer">✕</button></div>`; }).join("");
-  $$(".timer", host).forEach(el => el.onclick = e => { const b = e.target.closest("button"); if (!b) return; const i = timers.findIndex(t => t.id === el.dataset.id); if (i < 0) return; const t = timers[i];
-    if (b.dataset.act === "x") timers.splice(i, 1); else if (t.paused != null){ t.end = Date.now() + t.paused; t.paused = null; } else t.paused = Math.max(0, t.end - Date.now()); drawTimers(); });
+  // rebuild only when timers are added, removed, paused or start ringing; otherwise just update the clock text (keeps buttons steady to tap)
+  const sig = timers.map(t => t.id + (t.ring ? "r" : t.paused != null ? "p" : "")).join(",");
+  if (sig === timerSig){ timers.forEach(t => { const el = host.querySelector(`[data-id="${t.id}"] b`); if (el && !t.ring) el.textContent = timeLeft(t); }); return; }
+  timerSig = sig;
+  host.innerHTML = timers.map(t => `<div class="timer ${t.ring ? "ring" : ""}" data-id="${t.id}" role="${t.ring ? "alert" : "timer"}"><div><b>${t.ring ? "Time's up!" : timeLeft(t)}</b><small>${esc(t.label)}</small></div>
+      ${t.ring ? `<button data-act="x" class="stopbtn" aria-label="Stop alarm">Stop</button>` : `<button data-act="t" aria-label="Test the alarm sound" title="Test sound">🔔</button><button data-act="p" aria-label="${t.paused != null ? "Resume" : "Pause"} timer">${t.paused != null ? "▶" : "❚❚"}</button><button data-act="x" aria-label="Cancel timer">✕</button>`}</div>`).join("");
+  $$(".timer", host).forEach(el => el.onclick = e => { const b = e.target.closest("button"); if (!b) return; const t = timers.find(x => x.id === el.dataset.id); if (!t) return;
+    alarm.unlock();
+    if (b.dataset.act === "x") stopTimer(t);
+    else if (b.dataset.act === "t") alarm.test();
+    else if (t.paused != null){ t.end = Date.now() + t.paused; t.paused = null; alarm.schedule(t); }
+    else { t.paused = Math.max(0, t.end - Date.now()); alarm.cancel(t); }
+    drawTimers(); });
 }
-setInterval(() => { if (!timers.length) return; let ring = false; timers.forEach(t => { if (t.paused == null && !t.ring && Date.now() >= t.end){ t.ring = true; try { navigator.vibrate?.([300,150,300]); } catch {} } if (t.ring) ring = true; }); if (ring && Math.floor(Date.now()/1000) % 2 === 0) beep(); drawTimers(); }, 1000);
+function tickTimers(){
+  if (!timers.length) return;
+  timers.forEach(t => {
+    // the scheduled beeps cover a throttled page; once the page notices, it switches to the looping alarm
+    if (t.paused == null && !t.ring && Date.now() >= t.end){ t.ring = true; alarm.cancel(t); }
+    if (t.ring) alarm.ring();
+  });
+  drawTimers();
+}
+setInterval(tickTimers, 1000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") tickTimers(); });
+/* any tap keeps sound allowed (Safari can suspend audio while the page sits idle) */
+document.addEventListener("pointerdown", () => { if (timers.some(t => !t.ring && t.paused == null)) { try { alarm.ctx?.resume?.(); } catch {} } }, {passive: true});
 
 /* ================= modal ================= */
 function modal(title, inner){
